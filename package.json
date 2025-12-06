@@ -1,0 +1,49 @@
+{
+  "name": "project-graph",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@hpcc-js/wasm": "^2.29.0",
+    "@panzoom/panzoom": "^4.6.1",
+    "@react-spring/web": "^10.0.3",
+    "@reduxjs/toolkit": "^2.11.0",
+    "@types/cytoscape-dagre": "^2.3.4",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-vis": "^1.11.15",
+    "@use-gesture/react": "^10.3.1",
+    "@xyflow/react": "^12.10.0",
+    "cytoscape": "^3.33.1",
+    "cytoscape-dagre": "^2.5.0",
+    "cytoscape-elk": "^2.3.0",
+    "cytoscape-fcose": "^2.2.0",
+    "cytoscape-klay": "^3.1.4",
+    "dagre": "^0.8.5",
+    "elkjs": "^0.11.0",
+    "graphlib-dot": "^0.6.4",
+    "react-cytoscapejs": "^2.0.0",
+    "react-graph-vis": "^1.0.7",
+    "react-redux": "^9.2.0",
+    "react-zoom-pan-pinch": "^3.7.0",
+    "typescript": "^5.9.3",
+    "uuid": "^13.0.0",
+    "vis-data": "^8.0.3",
+    "vis-network": "^10.0.2",
+    "vite": "^7.2.6"
+  },
+  "devDependencies": {
+    "@types/dagre": "^0.7.53",
+    "@types/graphlib-dot": "^0.6.4",
+    "@types/uuid": "^10.0.0",
+    "@types/vis": "^4.21.27",
+    "ts-node": "^10.9.2"
+  }
+}

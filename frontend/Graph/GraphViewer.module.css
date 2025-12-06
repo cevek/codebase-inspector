@@ -1,0 +1,12 @@
+.svg g.selected path,
+.svg ::-webkit-meter-even-less-good-value.selected ellipse {
+    stroke: #ff0000 !important;
+    stroke-width: 3px !important;
+    filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.5));
+}
+
+.svg g.selected > path {
+    stroke: #0000ff !important;
+    stroke-width: 3px !important;
+    fill: #e6e6ff !important;
+}

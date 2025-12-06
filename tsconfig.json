@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "useDefineForClassFields": true,
+        "module": "commonjs",
+        "skipLibCheck": true,
+
+        /* Bundler mode */
+        "noEmit": true,
+        "jsx": "react-jsx",
+        "resolveJsonModule": true,
+
+        /* Linting */
+        "strict": true,
+        "noFallthroughCasesInSwitch": true
+    }
+}
