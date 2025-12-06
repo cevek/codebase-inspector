@@ -7,3 +7,20 @@ body {
 * {
     box-sizing: border-box;
 }
+
+button {
+    background: none;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px 5px;
+    margin-left: 10px;
+    word-break: keep-all;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    margin: 0;
+}

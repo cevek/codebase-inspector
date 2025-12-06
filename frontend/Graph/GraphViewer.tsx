@@ -11,12 +11,20 @@ export const GraphViewer: React.FC<{
     onSelect?: (id: string | null) => void;
 }> = ({data, selectedId, onSelect}) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const [{domIdToIdMap, idToDomIdMap}, setMap] = React.useState<{
+        domIdToIdMap: Map<string, string>;
+        idToDomIdMap: Map<string, string>;
+    }>({
+        domIdToIdMap: new Map(),
+        idToDomIdMap: new Map(),
+    });
     React.useEffect(() => {
         const renderGraph = async () => {
             try {
-                const dot = generateGraphviz(data);
+                const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz(data);
+                setMap({domIdToIdMap, idToDomIdMap});
                 const graphviz = await Graphviz.load();
-                const svg = graphviz.layout(dot, 'svg', 'dot');
+                const svg = graphviz.layout(dotString, 'svg', 'dot');
                 containerRef.current!.innerHTML = svg;
             } catch (err) {
                 console.error(err);
@@ -31,7 +39,7 @@ export const GraphViewer: React.FC<{
             previouslySelected.forEach((el) => el.classList.remove(classes.selected));
         }
         if (selectedId && containerRef.current) {
-            const element = containerRef.current.querySelector(`#${selectedId}`);
+            const element = containerRef.current.querySelector(`#${idToDomIdMap.get(selectedId)}`);
             if (element) {
                 element.classList.add(classes.selected);
             }
@@ -43,8 +51,8 @@ export const GraphViewer: React.FC<{
         const groupElement = target.closest('g.node, g.cluster');
         if (groupElement) {
             const id = groupElement.getAttribute('id');
-            if (id && id.split('_').length > 1) {
-                onSelect?.(selectedId === id ? null : id);
+            if (id) {
+                onSelect?.(selectedId === id ? null : domIdToIdMap.get(id) ?? null);
                 return;
             }
         }
