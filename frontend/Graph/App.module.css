@@ -36,6 +36,14 @@
     flex-direction: column;
     gap: 2px;
 }
+
+.ideSelector {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
 .removedItem {
     display: flex;
     justify-content: space-between;

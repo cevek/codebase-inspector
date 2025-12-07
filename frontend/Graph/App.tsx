@@ -2,6 +2,7 @@ import {useEffect, useLayoutEffect, useState} from 'react';
 import {Graph, Id} from '../../types';
 import classes from './App.module.css';
 import {GraphViewer} from './GraphViewer';
+import {useIde} from './hooks/useIde';
 import {usePersistentState} from './hooks/usePersistentState';
 import {removeNodeRecursive} from './utils/removeNodeRecursive';
 
@@ -10,6 +11,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [removedIds, setRemovedIds] = usePersistentState<Id[]>({key: 'removedIds'}, []);
     const [graphData, setGraphData] = useState(initialData);
     const [editHistory, setEditHistory] = useState<{removedId: Id}[]>([]);
+    const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(graphData);
 
     useLayoutEffect(() => {
         let newGraph = initialData;
@@ -69,12 +71,28 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
 
     return (
         <div style={{width: '100%', height: '100%'}}>
-            <GraphViewer data={graphData} onSelect={setSelectedId} selectedId={selectedId} />
+            <GraphViewer
+                data={graphData}
+                onSelect={setSelectedId}
+                onDoubleClick={handleOpenFileInIde}
+                selectedId={selectedId}
+            />
 
             <div className={classes.sidebar}>
                 <div className={classes.selected}>
                     <h2>Selected:</h2>
                     <div>{selectedId || 'None'}</div>
+                </div>
+
+                <div className={classes.ideSelector}>
+                    <h4>Open in IDE:</h4>
+                    <select value={selectedIde} onChange={(e) => setSelectedIde(e.target.value as 'vscode')}>
+                        {ideOptions.map((ide) => (
+                            <option key={ide.value} value={ide.value}>
+                                {ide.name}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 {removedIds.length > 0 && (

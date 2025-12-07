@@ -10,7 +10,8 @@ export const GraphViewer: React.FC<{
     data: Graph;
     selectedId: Id | null;
     onSelect?: (id: Id | null) => void;
-}> = ({data, selectedId, onSelect}) => {
+    onDoubleClick?: (id: Id) => void;
+}> = ({data, selectedId, onSelect, onDoubleClick}) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [{domIdToIdMap, idToDomIdMap}, setMap] = React.useState<{
         domIdToIdMap: Map<string, Id>;
@@ -49,20 +50,24 @@ export const GraphViewer: React.FC<{
 
     const handleGraphClick = (e: React.MouseEvent) => {
         const target = e.target as HTMLElement;
+        const nodeId = findNodeByElement(target);
+        if (nodeId) onSelect?.(selectedId === nodeId ? null : nodeId);
+        else onSelect?.(null);
+    };
+
+    const handleGraphDoubleClick = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        const nodeId = findNodeByElement(target);
+        if (nodeId) onDoubleClick?.(nodeId);
+    };
+
+    function findNodeByElement(target: HTMLElement) {
         const groupElement = target.closest('g.node, g.cluster');
         if (groupElement) {
             const id = groupElement.getAttribute('id');
-            if (id) {
-                const nodeId = domIdToIdMap.get(id);
-                if (nodeId) {
-                    onSelect?.(selectedId === nodeId ? null : nodeId);
-                }
-                return;
-            }
+            if (id) return domIdToIdMap.get(id);
         }
-
-        onSelect?.(null);
-    };
+    }
 
     return (
         <TransformWrapper
@@ -82,6 +87,7 @@ export const GraphViewer: React.FC<{
                     ref={containerRef}
                     style={{width: '100%', height: '100%'}}
                     onClick={handleGraphClick}
+                    onDoubleClick={handleGraphDoubleClick}
                 />
             </TransformComponent>
         </TransformWrapper>
