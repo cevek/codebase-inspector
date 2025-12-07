@@ -10,9 +10,10 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [selectedId, setSelectedId] = useState<Id | null>(null);
     const [removedIds, setRemovedIds] = usePersistentState<Id[]>('removedIds', []);
     const [graphData, setGraphData] = useState(initialData);
+    const [editHistory, setEditHistory] = useState<{removedId: Id}[]>([]);
 
     useLayoutEffect(() => {
-        let newGraph = graphData;
+        let newGraph = initialData;
         for (const someId of removedIds) {
             const node = newGraph.nodes.get(someId);
             if (node) {
@@ -20,7 +21,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
             } else {
                 let newGraph2 = newGraph;
                 for (const [id, node] of newGraph.nodes) {
-                    if (node.location.module.startsWith(someId)) {
+                    if (node.location.module === someId || node.location.module.startsWith(someId + '/')) {
                         newGraph2 = removeNodeRecursive(
                             newGraph2,
                             id as Id,
@@ -44,13 +45,21 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                 if (selectedId) {
                     const newRemovedIds = [...removedIds, selectedId];
                     setRemovedIds(newRemovedIds);
+                    setEditHistory([{removedId: selectedId}, ...editHistory]);
                     setSelectedId(null);
                 }
+            }
+            if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+                if (editHistory.length === 0) return;
+                const [lastHistoryItem, ...newHistoryEdit] = editHistory.slice().reverse();
+                const newRemovedIds = removedIds.filter((v) => v !== lastHistoryItem.removedId);
+                setRemovedIds(newRemovedIds);
+                setEditHistory(newHistoryEdit);
             }
         };
         document.addEventListener('keydown', handleGraphKeyDown);
         return () => document.removeEventListener('keydown', handleGraphKeyDown);
-    }, [selectedId, removedIds, setRemovedIds]);
+    }, [selectedId, removedIds, editHistory, setRemovedIds]);
 
     const handleRestoreId = (idToRestore: string) => {
         setRemovedIds(removedIds.filter((id) => id !== idToRestore));
@@ -76,12 +85,15 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                             <button onClick={handleRestoreAll}>Restore All</button>
                         </div>
                         <div className={classes.removedListScroll}>
-                            {removedIds.slice().reverse().map((id) => (
-                                <div key={id} className={classes.removedItem}>
-                                    <span>{id}</span>
-                                    <button onClick={() => handleRestoreId(id)}>Restore</button>
-                                </div>
-                            ))}
+                            {removedIds
+                                .slice()
+                                .reverse()
+                                .map((id) => (
+                                    <div key={id} className={classes.removedItem}>
+                                        <span>{id}</span>
+                                        <button onClick={() => handleRestoreId(id)}>Restore</button>
+                                    </div>
+                                ))}
                             {removedIds.length === 0 && <small>None</small>}
                         </div>
                     </div>
