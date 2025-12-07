@@ -16,13 +16,6 @@ export const THEME = {
             fill: '#ececffff',
             border: '#9494c2ff',
         },
-        success: {
-            fill: '#90EE90',
-            border: '#006400',
-        },
-        error: {
-            fill: '#FFB6C1',
-            border: '#8B0000',
-        },
+        apiCall: '#777777',
     },
 };

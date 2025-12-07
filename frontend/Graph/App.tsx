@@ -1,7 +1,7 @@
 import {useEffect, useLayoutEffect, useState} from 'react';
 import {Graph, Id} from '../../types';
 import classes from './App.module.css';
-import {GraphViewer} from './GraphViewer';
+import {GraphViewer, LayoutDirection} from './GraphViewer';
 import {useIde} from './hooks/useIde';
 import {usePersistentState} from './hooks/usePersistentState';
 import {removeNodeRecursive} from './utils/removeNodeRecursive';
@@ -12,6 +12,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [graphData, setGraphData] = useState(initialData);
     const [editHistory, setEditHistory] = useState<{removedId: Id}[]>([]);
     const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(graphData);
+    const [layoutDirection, setLayoutDirection] = usePersistentState<LayoutDirection>({key: 'layoutDirection'}, 'TB');
 
     useLayoutEffect(() => {
         let newGraph = initialData;
@@ -69,6 +70,8 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         setRemovedIds([]);
     };
 
+    const selectedNode = selectedId ? graphData.nodes.get(selectedId) : null;
+
     return (
         <div style={{width: '100%', height: '100%'}}>
             <GraphViewer
@@ -76,22 +79,38 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                 onSelect={setSelectedId}
                 onDoubleClick={handleOpenFileInIde}
                 selectedId={selectedId}
+                layoutDirection={layoutDirection}
             />
 
             <div className={classes.sidebar}>
                 <div className={classes.selected}>
-                    <h2>Selected:</h2>
-                    <div>{selectedId || 'None'}</div>
+                    <h3>{selectedId?.replaceAll('/', ' › ') || 'Nothing selected'}</h3>
+                    {selectedNode?.type === 'epic' && selectedNode.apiCall.requests.length > 0 && (
+                        <div className={classes.apiCall}>
+                            {selectedNode.apiCall.requests[0].type} {selectedNode.apiCall.requests[0].url}
+                        </div>
+                    )}
                 </div>
 
                 <div className={classes.ideSelector}>
                     <h4>Open in IDE:</h4>
-                    <select value={selectedIde} onChange={(e) => setSelectedIde(e.target.value as 'vscode')}>
+                    <select value={selectedIde} onChange={(e) => setSelectedIde(e.target.value as any)}>
                         {ideOptions.map((ide) => (
                             <option key={ide.value} value={ide.value}>
                                 {ide.name}
                             </option>
                         ))}
+                    </select>
+                </div>
+
+                <div className={classes.ideSelector}>
+                    <h4>Layout:</h4>
+                    <select
+                        value={layoutDirection}
+                        onChange={(e) => setLayoutDirection(e.target.value as LayoutDirection)}
+                    >
+                        <option value="TB">Top-to-Bottom</option>
+                        <option value="LR">Left-to-Right</option>
                     </select>
                 </div>
 

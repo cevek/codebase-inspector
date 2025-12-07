@@ -10,17 +10,19 @@ type PortMapping = {
 const sanitizeId = (id: string) => id.replace(/\$|:|\//g, '_');
 const escapeLabel = (label: string) => label.replace(/"/g, '\\"');
 
-const createEpicHtmlLabel = (label: string) => `
+const createEpicHtmlLabel = (label: string, method?: string) => `
     <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="3">
         <TR>
-            <TD>"${escapeLabel(label)}"</TD>
+            <TD>${escapeLabel(label)}</TD>
+            <TD><font color="${THEME.colors.apiCall}">${method ?? ''}</font></TD>
             <TD PORT="success">✔</TD>
             <TD PORT="error">✖</TD>
         </TR>
     </TABLE>
 `;
+// ${url ? `<TR><TD COLSPAN="3"><font color="${THEME.colors.apiCall}">${url}</font></TD></TR>` : ''}
 
-export function generateGraphviz(data: Graph) {
+export function generateGraphviz(data: Graph, direction: 'TB' | 'LR' = 'TB') {
     const domIdToIdMap = new Map<string, Id>();
     const idToDomIdMap = new Map<Id, string>();
     const renderedNodeIds = new Set<Id>();
@@ -30,7 +32,7 @@ export function generateGraphviz(data: Graph) {
 
     lines.push('digraph G {');
     lines.push('  compound=true;');
-    lines.push('  rankdir=TB;');
+    lines.push(`  rankdir=${direction};`);
     lines.push(`  graph [fontname = "${THEME.font}", fontsize = ${THEME.fontSize.clusterLabel}];`);
     lines.push(`  node [fontname="${THEME.font}", fontsize=${THEME.fontSize.nodeLabel}];`);
     lines.push(`  edge [color="${THEME.colors.edge}"];\n`);
@@ -55,19 +57,12 @@ export function generateGraphviz(data: Graph) {
         if (node.type === 'epic') {
             const hasEmbedded = [...embeddedNodesMap.values()].some((v) => v.ownerId === id);
             if (hasEmbedded) {
-                const htmlLabel = createEpicHtmlLabel(node.name);
+                const [req] = node.apiCall.requests;
+                const htmlLabel = createEpicHtmlLabel(node.name, req?.type);
                 return `    "${id}" [id="${domId}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="${THEME.colors.epic.border}", label=<${htmlLabel}>];`;
             }
             return `    "${id}" [id="${domId}", label="${label}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="${THEME.colors.epic.border}"];`;
         }
-
-        if (node.name === 'Success') {
-            return `    "${id}" [id="${domId}", label="✔", shape=circle, fixedsize=true, width=0.4, fillcolor="${THEME.colors.success.fill}", style="filled", color="${THEME.colors.success.border}"];`;
-        }
-        if (node.name === 'Error') {
-            return `    "${id}" [id="${domId}", label="✖", shape=circle, fixedsize=true, width=0.4, fillcolor="${THEME.colors.error.fill}", style="filled", color="${THEME.colors.error.border}"];`;
-        }
-
         return `    "${id}" [id="${domId}", label="${label}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="${THEME.colors.actionNode.border}"];`;
     }
 

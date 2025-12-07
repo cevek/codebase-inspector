@@ -12,7 +12,19 @@
 
 .selected {
     word-wrap: break-word;
-    height: 50px;
+    min-height: 80px;
+}
+.selected h3 {
+    font-size: 20px;
+}
+
+.apiCall {
+    color: #333;
+    margin-top: 5px;
+    font-size: 14px;
+    border-radius: 4px;
+    border: 1px solid silver;
+    padding: 5px;
 }
 
 .removedList {

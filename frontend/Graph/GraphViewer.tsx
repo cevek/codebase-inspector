@@ -6,12 +6,15 @@ import classes from './GraphViewer.module.css';
 import {Graph, Id} from '../../types';
 const graphviz = await Graphviz.load();
 
+export type LayoutDirection = 'TB' | 'LR';
+
 export const GraphViewer: React.FC<{
     data: Graph;
     selectedId: Id | null;
     onSelect?: (id: Id | null) => void;
     onDoubleClick?: (id: Id) => void;
-}> = ({data, selectedId, onSelect, onDoubleClick}) => {
+    layoutDirection?: LayoutDirection;
+}> = ({data, selectedId, onSelect, onDoubleClick, layoutDirection = 'TB'}) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [{domIdToIdMap, idToDomIdMap}, setMap] = React.useState<{
         domIdToIdMap: Map<string, Id>;
@@ -24,7 +27,7 @@ export const GraphViewer: React.FC<{
         console.log('render graph', data);
         const renderGraph = async () => {
             try {
-                const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz(data);
+                const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz(data, layoutDirection);
                 setMap({domIdToIdMap, idToDomIdMap});
                 const svg = graphviz.layout(dotString, 'svg', 'dot');
                 containerRef.current!.innerHTML = svg;
@@ -33,7 +36,7 @@ export const GraphViewer: React.FC<{
             }
         };
         renderGraph();
-    }, [data]);
+    }, [data, layoutDirection]);
 
     React.useEffect(() => {
         if (containerRef.current) {
