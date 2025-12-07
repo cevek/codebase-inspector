@@ -40,12 +40,9 @@ export const removeNodeRecursive = (graph: Graph, targetNodeId: Id, shouldRemove
         // Проходимся по всем остальным нодам и удаляем удаляемую ноду (id) из их списков детей.
         // Это нужно, чтобы граф оставался консистентным и на удаленную ноду никто не ссылался.
         for (const parentId of newGraph.relations.keys()) {
-            const children = newGraph.relations.get(parentId as Id);
+            const children = newGraph.relations.get(parentId);
             if (children) {
-                newGraph.relations.set(
-                    parentId as Id,
-                    children.filter((childId) => childId !== id),
-                );
+                newGraph.relations.set(parentId, children.filter((childId) => childId !== id));
             }
         }
 

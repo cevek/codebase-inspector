@@ -22,7 +22,7 @@ const createEpicHtmlLabel = (label: string, method?: string) => `
 `;
 // ${url ? `<TR><TD COLSPAN="3"><font color="${THEME.colors.apiCall}">${url}</font></TD></TR>` : ''}
 
-export function generateGraphviz(data: Graph, direction: 'TB' | 'LR' = 'TB') {
+export function generateGraphviz(data: Graph, clusters: Map<Id, Cluster>, direction: 'TB' | 'LR' = 'TB') {
     const domIdToIdMap = new Map<string, Id>();
     const idToDomIdMap = new Map<Id, string>();
     const renderedNodeIds = new Set<Id>();
@@ -81,14 +81,11 @@ export function generateGraphviz(data: Graph, direction: 'TB' | 'LR' = 'TB') {
             const nodeStr = renderNode(nodeId);
             if (nodeStr) lines.push(nodeStr);
         });
-        cluster.subClusters?.forEach((sub) => traverseCluster(sub));
+        cluster.subClusters?.forEach((sub) => traverseCluster(clusters.get(sub)!));
         lines.push('  }\n');
     }
 
-    const clusters = generateGraphClusters(data);
-    if (clusters) {
-        clusters.forEach(traverseCluster);
-    }
+    clusters.forEach(traverseCluster);
 
     for (const id of data.nodes.keys()) {
         if (!renderedNodeIds.has(id)) {
@@ -116,7 +113,7 @@ export function generateGraphviz(data: Graph, direction: 'TB' | 'LR' = 'TB') {
     }
     lines.push('}');
     const dotString = lines.join('\n');
-    console.log(dotString);
+    // console.log(dotString);
     return {dotString, domIdToIdMap, idToDomIdMap};
 }
 

@@ -1,7 +1,8 @@
 import {Graph, Cluster, Id} from '../../../types';
 
-export function generateGraphClusters(graph: Graph): Cluster[] {
-    const rootClusters: Cluster[] = [];
+export function generateGraphClusters(graph: Graph): Map<Id, Cluster> {
+    const clusters = new Map<Id, Cluster>();
+    const pathKeyToIdMap = new Map<string, Id>();
 
     for (const [nodeId, node] of graph.nodes) {
         const pathString = node.location.module;
@@ -9,34 +10,51 @@ export function generateGraphClusters(graph: Graph): Cluster[] {
         if (!pathString) continue;
 
         const pathParts = pathString.split('/').filter(Boolean);
-
-        let currentLevelClusters = rootClusters;
         const partsForId: string[] = [];
+
+        let parentId: Id | null = null;
 
         pathParts.forEach((part, index) => {
             partsForId.push(part);
 
-            const fullPathName = partsForId.join('/');
+            const fullPathKey = partsForId.join('/');
 
-            let cluster = currentLevelClusters.find((c) => c.name === fullPathName);
+            let clusterId = pathKeyToIdMap.get(fullPathKey);
+            let cluster: Cluster;
 
-            if (!cluster) {
+            if (!clusterId) {
+                clusterId = ('cluster_' + fullPathKey) as Id;
+                pathKeyToIdMap.set(fullPathKey, clusterId);
+
                 cluster = {
-                    id: fullPathName as Id,
-                    name: fullPathName,
+                    id: clusterId,
+                    name: fullPathKey,
                     subClusters: [],
                     nodes: [],
                 };
-                currentLevelClusters.push(cluster);
+
+                clusters.set(clusterId, cluster);
+
+                if (parentId) {
+                    const parentCluster = clusters.get(parentId);
+                    if (parentCluster) {
+                        if (!parentCluster.subClusters.includes(clusterId)) {
+                            parentCluster.subClusters.push(clusterId);
+                        }
+                    }
+                }
+            } else {
+                cluster = clusters.get(clusterId)!;
             }
 
             const isLastPart = index === pathParts.length - 1;
             if (isLastPart) {
-                cluster.nodes.push(nodeId as Id);
+                cluster.nodes.push(nodeId);
             }
-            currentLevelClusters = cluster.subClusters;
+
+            parentId = clusterId;
         });
     }
 
-    return rootClusters;
+    return clusters;
 }

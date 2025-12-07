@@ -33,7 +33,7 @@ export type Item = Action | Epic;
 export interface Cluster {
     id: Id;
     name: string;
-    subClusters: Cluster[];
+    subClusters: Id[];
     nodes: Id[];
 }
 

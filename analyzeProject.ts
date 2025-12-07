@@ -4,6 +4,8 @@ import * as ts from 'typescript';
 import {renormalizeGraphIds} from './renormalizeGraphIds';
 import {getLocation, getNodeKey, getUrlFromArgument} from './utils/ast';
 import {Action, ApiCall, ApiRequest, Epic, Id, Item} from './types';
+import {compressFileIntoUrlSafeString} from './utils/compressFile';
+import open from 'open';
 
 const CONFIG = {
     apiClients: {
@@ -20,6 +22,7 @@ const CONFIG = {
         typeKeywords: ['ActionCreator', 'CallHistoryMethodAction', '@@router/'],
     },
     epics: {
+        rootEpicNames: ['rootEpic'],
         typeKeywords: ['Epic'],
         operators: {filter: 'ofType'},
     },
@@ -64,7 +67,8 @@ class ReduxProjectAnalyzer {
             nodes: Object.fromEntries(result.nodes),
             relations: Object.fromEntries(result.relations),
         };
-        fs.writeFileSync('./data.json', JSON.stringify(output, null, 2));
+        fs.writeFileSync('./data.json', JSON.stringify(output));
+        open('http://localhost:5173/#payload=' + compressFileIntoUrlSafeString('./data.json'));
         console.log('Analysis complete. data.json saved.');
     }
 
@@ -109,7 +113,7 @@ class ReduxProjectAnalyzer {
                 if (ts.isVariableStatement(statement)) {
                     for (const decl of statement.declarationList.declarations) {
                         // const x: Epic = ... ?
-                        if (ts.isIdentifier(decl.name) && decl.initializer && this.isNodeEpic(decl)) {
+                        if (ts.isIdentifier(decl.name) && decl.initializer && this.isNodeEpic(decl, decl.name.text)) {
                             this.processEpic(decl.name.text, decl.initializer, statement, sourceFile);
                         }
                     }
@@ -118,10 +122,11 @@ class ReduxProjectAnalyzer {
         }
     }
 
-    private isNodeEpic(decl: ts.VariableDeclaration): boolean {
+    private isNodeEpic(decl: ts.VariableDeclaration, epicName: string): boolean {
         if (decl.initializer && ts.isArrayLiteralExpression(decl.initializer)) return false;
         const type = this.checker.getTypeAtLocation(decl.name);
         const typeString = this.checker.typeToString(type, undefined, ts.TypeFormatFlags.NoTruncation);
+        if (CONFIG.epics.rootEpicNames.some((name) => name.includes(epicName))) return false;
         return CONFIG.epics.typeKeywords.some((keyword) => typeString.includes(keyword));
     }
 

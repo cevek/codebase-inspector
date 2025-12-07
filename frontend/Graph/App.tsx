@@ -1,15 +1,19 @@
-import {useEffect, useLayoutEffect, useState} from 'react';
-import {Graph, Id} from '../../types';
+import {useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {Cluster, Graph, Id} from '../../types';
 import classes from './App.module.css';
 import {GraphViewer, LayoutDirection} from './GraphViewer';
 import {useIde} from './hooks/useIde';
 import {usePersistentState} from './hooks/usePersistentState';
 import {removeNodeRecursive} from './utils/removeNodeRecursive';
+import {generateGraphClusters} from './utils/generateGraphClusters';
+import {prettifyName} from './utils/prettifyName';
 
 export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [selectedId, setSelectedId] = useState<Id | null>(null);
-    const [removedIds, setRemovedIds] = usePersistentState<Id[]>({key: 'removedIds'}, []);
+    const [removedIds, setRemovedIds] = usePersistentState<Id[]>({key: 'removedIds', storage: 'session'}, []);
     const [graphData, setGraphData] = useState(initialData);
+    const initialClusters = useMemo(() => generateGraphClusters(initialData), []);
+    const [clusters, setClusters] = useState(initialClusters);
     const [editHistory, setEditHistory] = useState<{removedId: Id}[]>([]);
     const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(graphData);
     const [layoutDirection, setLayoutDirection] = usePersistentState<LayoutDirection>({key: 'layoutDirection'}, 'TB');
@@ -17,24 +21,31 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     useLayoutEffect(() => {
         let newGraph = initialData;
         for (const someId of removedIds) {
-            const node = newGraph.nodes.get(someId);
+            const node = initialData.nodes.get(someId);
             if (node) {
                 newGraph = removeNodeRecursive(newGraph, someId, (n) => n.location.module === node.location.module);
             } else {
                 let newGraph2 = newGraph;
-                for (const [id, node] of newGraph.nodes) {
-                    if (node.location.module === someId || node.location.module.startsWith(someId + '/')) {
-                        newGraph2 = removeNodeRecursive(
-                            newGraph2,
-                            id as Id,
-                            (n) => n.location.module === node.location.module,
-                        );
+                const cluster = initialClusters.get(someId);
+                if (cluster) {
+                    for (const [id, node] of newGraph.nodes) {
+                        if (
+                            node.location.module === cluster.name ||
+                            node.location.module.startsWith(cluster.name + '/')
+                        ) {
+                            newGraph2 = removeNodeRecursive(
+                                newGraph2,
+                                id,
+                                (n) => n.location.module === node.location.module,
+                            );
+                        }
                     }
                 }
                 newGraph = newGraph2;
             }
         }
         setGraphData(newGraph);
+        setClusters(generateGraphClusters(newGraph));
     }, [removedIds, initialData]);
 
     useEffect(() => {
@@ -70,12 +81,22 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         setRemovedIds([]);
     };
 
+    function generateNodeName(id: Id) {
+        const node = initialData.nodes.get(id);
+        if (node) return prettifyName(node.location.module + '/' + node.name);
+    }
+    function generateClusterName(id: Id) {
+        const cluster = initialClusters.get(id);
+        if (cluster) return prettifyName(cluster.name);
+    }
+
     const selectedNode = selectedId ? graphData.nodes.get(selectedId) : null;
 
     return (
         <div style={{width: '100%', height: '100%'}}>
             <GraphViewer
-                data={graphData}
+                graph={graphData}
+                clusters={clusters}
                 onSelect={setSelectedId}
                 onDoubleClick={handleOpenFileInIde}
                 selectedId={selectedId}
@@ -84,7 +105,11 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
 
             <div className={classes.sidebar}>
                 <div className={classes.selected}>
-                    <h3>{selectedId?.replaceAll('/', ' › ') || 'Nothing selected'}</h3>
+                    <h3>
+                        {selectedId
+                            ? (generateNodeName(selectedId) ?? generateClusterName(selectedId) ?? selectedId)
+                            : 'Nothing selected'}
+                    </h3>
                     {selectedNode?.type === 'epic' && selectedNode.apiCall.requests.length > 0 && (
                         <div className={classes.apiCall}>
                             {selectedNode.apiCall.requests[0].type} {selectedNode.apiCall.requests[0].url}
@@ -94,7 +119,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
 
                 <div className={classes.ideSelector}>
                     <h4>Open in IDE:</h4>
-                    <select value={selectedIde} onChange={(e) => setSelectedIde(e.target.value as any)}>
+                    <select value={selectedIde} onChange={(e) => setSelectedIde(e.target.value as 'vscode')}>
                         {ideOptions.map((ide) => (
                             <option key={ide.value} value={ide.value}>
                                 {ide.name}
@@ -126,7 +151,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                                 .reverse()
                                 .map((id) => (
                                     <div key={id} className={classes.removedItem}>
-                                        <span>{id}</span>
+                                        <span>{generateNodeName(id) ?? generateClusterName(id) ?? id}</span>
                                         <button onClick={() => handleRestoreId(id)}>Restore</button>
                                     </div>
                                 ))}

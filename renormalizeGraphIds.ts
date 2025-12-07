@@ -11,16 +11,11 @@ export function renormalizeGraphIds(input: {nodes: Map<Id, Item>; relations: Map
     const newRelations: Map<Id, Id[]> = new Map();
 
     for (const [oldId, node] of input.nodes) {
-        const moduleName = node.location?.module || 'unknown';
-        const cleanName = node.name || 'unnamed';
-
-        const baseNewId = `${moduleName}/${cleanName}` as Id;
-
-        let candidateId = baseNewId;
         let counter = 1;
+        let candidateId = counter.toString() as Id;
 
         while (usedNewIds.has(candidateId)) {
-            candidateId = `${baseNewId}$${counter}` as Id;
+            candidateId = `${counter}` as Id;
             counter++;
         }
         usedNewIds.add(candidateId);
