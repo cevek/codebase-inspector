@@ -2,40 +2,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as ts from 'typescript';
 import {renormalizeGraphIds} from './renormalizeGraphIds';
-import {enrichGraphWithClusters, getLocation, getNodeKey, getUrlFromArgument} from './utils';
-
-export type Id = {_brand: 'Id'} & string;
-type BaseItem = {
-    name: string;
-    location: Loc;
-};
-
-export type Loc = {
-    url: string;
-    module: string;
-};
-
-type ApiRequest = {
-    type: 'POST' | 'GET' | 'PUT' | 'DELETE';
-    url: string;
-    location: Loc;
-};
-type ApiCall = {
-    requests: ApiRequest[];
-    successErrorIds: Id[];
-};
-type Action = BaseItem & {
-    type: 'action';
-};
-
-type Epic = BaseItem & {
-    type: 'epic';
-    apiCall: ApiCall;
-};
-
-export type Item = Action | Epic;
-
-export const printer = ts.createPrinter({newLine: ts.NewLineKind.LineFeed, omitTrailingSemicolon: true});
+import {getLocation, getNodeKey, getUrlFromArgument} from './utils/ast';
+import {Action, ApiCall, ApiRequest, Epic, Id, Item} from './types';
 
 function findActions(program: ts.Program): Map<Id, Action> {
     const actions = new Map<Id, Action>();
@@ -82,13 +50,13 @@ function analyzeEpicBody(
     const dispatches: Id[] = [];
     const apiCall: ApiCall = {
         requests: [],
-        successErrorIds: [],
+        successId: null,
+        errorId: null,
     };
 
     if (!body) return {subscriptions, dispatches, apiCall};
 
     function visit(node: ts.Node) {
-        // --- Логика поиска API вызовов ---
         if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
             const propAccess = node.expression;
 
@@ -270,32 +238,10 @@ function analyzeProject(folder: string) {
     const nodes_ = new Map<Id, Item>([...actionsMap, ...epicsMap]);
     const {nodes, relations} = renormalizeGraphIds({nodes: nodes_, relations: relations_});
 
-    for (const [id, node] of nodes) {
-        node.location.module = node.location.module.replace(/timeFrames/, 'schedule');
-        if (node.type === 'epic') {
-            let dispatches = relations.get(id) ?? [];
-            let groupped = false;
-            for (const actionId of dispatches) {
-                const action = nodes.get(actionId)! as Action;
-                if (action.name.match(/Success|Error/)) {
-                    action.name = action.name.match(/Success/) ? 'Success' : 'Error';
-                    node.apiCall.successErrorIds.push(actionId);
-                    action.location.module += '/' + node.name;
-                    dispatches = dispatches.filter((d) => d !== actionId);
-                    relations.set(id, dispatches);
-                    groupped = true;
-                }
-            }
-            if (groupped) {
-                node.location.module += '/' + node.name;
-            }
-        }
-    }
-
-    const data = enrichGraphWithClusters({
+    const data = {
         nodes: Object.fromEntries(nodes),
         relations: Object.fromEntries(relations),
-    });
+    };
     fs.writeFileSync('./data.json', JSON.stringify(data, null, 2));
 }
 

@@ -1,19 +1,37 @@
 import {useEffect, useLayoutEffect, useState} from 'react';
-import {removeClusterFromGraph} from './utils/removeClustersAndNodesFromGraph';
-import {Graph} from './types';
-import {GraphViewer} from './GraphViewer';
 import classes from './App.module.css';
+import {GraphViewer} from './GraphViewer';
 import {usePersistentState} from './hooks/usePersistentState';
+import {generateGraphClusters} from './utils/generateGraphClusters';
+import {removeNodeRecursive} from './utils/removeNodeRecursive';
+import {Graph, Id} from '../../types';
 
 export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
-    const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [removedIds, setRemovedIds] = usePersistentState<string[]>('removedIds', []);
+    const [selectedId, setSelectedId] = useState<Id | null>(null);
+    const [removedIds, setRemovedIds] = usePersistentState<Id[]>('removedIds', []);
     const [graphData, setGraphData] = useState(initialData);
 
     useLayoutEffect(() => {
-        const newData = removeClusterFromGraph(initialData, removedIds);
-        setGraphData(newData);
-        console.log({newData, removedIds});
+        let newGraph = graphData;
+        for (const someId of removedIds) {
+            const node = newGraph.nodes.get(someId);
+            if (node) {
+                newGraph = removeNodeRecursive(newGraph, someId, (n) => n.location.module === node.location.module);
+            } else {
+                let newGraph2 = newGraph;
+                for (const [id, node] of newGraph.nodes) {
+                    if (node.location.module.startsWith(someId)) {
+                        newGraph2 = removeNodeRecursive(
+                            newGraph2,
+                            id as Id,
+                            (n) => n.location.module === node.location.module,
+                        );
+                    }
+                }
+                newGraph = newGraph2;
+            }
+        }
+        setGraphData(newGraph);
     }, [removedIds, initialData]);
 
     useEffect(() => {
@@ -24,7 +42,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         const handleGraphKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Backspace') {
                 if (selectedId) {
-                    const newRemovedIds = [...removedIds, selectedId.replace('group_', '').replaceAll('_', '/')];
+                    const newRemovedIds = [...removedIds, selectedId];
                     setRemovedIds(newRemovedIds);
                     setSelectedId(null);
                 }
@@ -58,7 +76,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                             <button onClick={handleRestoreAll}>Restore All</button>
                         </div>
                         <div className={classes.removedListScroll}>
-                            {removedIds.map((id) => (
+                            {removedIds.slice().reverse().map((id) => (
                                 <div key={id} className={classes.removedItem}>
                                     <span>{id}</span>
                                     <button onClick={() => handleRestoreId(id)}>Restore</button>

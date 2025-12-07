@@ -1,4 +1,4 @@
-import {Id, Item} from './findEpicsAndActions';
+import {Id, Item} from './types';
 
 export function renormalizeGraphIds(input: {nodes: Map<Id, Item>; relations: Map<Id, Id[]>}): {
     nodes: Map<Id, Item>;

@@ -1,0 +1,151 @@
+import {Cluster, Graph, Id} from '../../../types';
+import {generateGraphClusters} from './generateGraphClusters';
+import {THEME} from './THEME';
+
+type PortMapping = {
+    ownerId: string;
+    portName: string;
+};
+
+const sanitizeId = (id: string) => id.replace(/\$|:|\//g, '_');
+const escapeLabel = (label: string) => label.replace(/"/g, '\\"');
+
+const createEpicHtmlLabel = (label: string) => `
+    <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="3">
+        <TR>
+            <TD>"${escapeLabel(label)}"</TD>
+            <TD PORT="success">✔</TD>
+            <TD PORT="error">✖</TD>
+        </TR>
+    </TABLE>
+`;
+
+export function generateGraphviz(data: Graph) {
+    const domIdToIdMap = new Map<string, Id>();
+    const idToDomIdMap = new Map<Id, string>();
+    const renderedNodeIds = new Set<Id>();
+
+    const embeddedNodesMap = analyzeEmbeddedNodes(data);
+    const lines: string[] = [];
+
+    lines.push('digraph G {');
+    lines.push('  compound=true;');
+    lines.push('  rankdir=TB;');
+    lines.push(`  graph [fontname = "${THEME.font}", fontsize = ${THEME.fontSize.clusterLabel}];`);
+    lines.push(`  node [fontname="${THEME.font}", fontsize=${THEME.fontSize.nodeLabel}];`);
+    lines.push(`  edge [color="${THEME.colors.edge}"];\n`);
+
+    let clusterGlobalIndex = 0;
+
+    function registerDomId(id: Id, prefix: string = 'node') {
+        const domId = `${prefix}_${sanitizeId(id)}`;
+        domIdToIdMap.set(domId, id);
+        idToDomIdMap.set(id, domId);
+        return domId;
+    }
+
+    function renderNode(id: Id): string {
+        const node = data.nodes.get(id);
+        if (!node || embeddedNodesMap.has(id)) return '';
+
+        renderedNodeIds.add(id);
+        const domId = registerDomId(id);
+        const label = escapeLabel(node.name);
+
+        if (node.type === 'epic') {
+            const hasEmbedded = [...embeddedNodesMap.values()].some((v) => v.ownerId === id);
+            if (hasEmbedded) {
+                const htmlLabel = createEpicHtmlLabel(node.name);
+                return `    "${id}" [id="${domId}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="${THEME.colors.epic.border}", label=<${htmlLabel}>];`;
+            }
+            return `    "${id}" [id="${domId}", label="${label}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="${THEME.colors.epic.border}"];`;
+        }
+
+        if (node.name === 'Success') {
+            return `    "${id}" [id="${domId}", label="✔", shape=circle, fixedsize=true, width=0.4, fillcolor="${THEME.colors.success.fill}", style="filled", color="${THEME.colors.success.border}"];`;
+        }
+        if (node.name === 'Error') {
+            return `    "${id}" [id="${domId}", label="✖", shape=circle, fixedsize=true, width=0.4, fillcolor="${THEME.colors.error.fill}", style="filled", color="${THEME.colors.error.border}"];`;
+        }
+
+        return `    "${id}" [id="${domId}", label="${label}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="${THEME.colors.actionNode.border}"];`;
+    }
+
+    function traverseCluster(cluster: Cluster) {
+        const clusterDotId = `cluster_${clusterGlobalIndex++}`;
+        const domId = registerDomId(cluster.id, 'group');
+
+        lines.push(`\n  subgraph "${clusterDotId}" {`);
+        lines.push(`    id="${domId}";`);
+        lines.push(`    label = "${escapeLabel(cluster.name)}";`);
+        lines.push(`    style = "rounded,dashed";`);
+        lines.push(`    color = "${THEME.colors.clusterBorder}";`);
+        lines.push(`    bgcolor = "${THEME.colors.clusterBg}";`);
+
+        cluster.nodes?.forEach((nodeId) => {
+            const nodeStr = renderNode(nodeId);
+            if (nodeStr) lines.push(nodeStr);
+        });
+        cluster.subClusters?.forEach((sub) => traverseCluster(sub));
+        lines.push('  }\n');
+    }
+
+    const clusters = generateGraphClusters(data);
+    if (clusters) {
+        clusters.forEach(traverseCluster);
+    }
+
+    for (const id of data.nodes.keys()) {
+        if (!renderedNodeIds.has(id)) {
+            const nodeStr = renderNode(id);
+            if (nodeStr) lines.push(nodeStr);
+        }
+    }
+
+    lines.push('\n  /* Relationships */');
+    for (const [sourceId, targets] of data.relations) {
+        if (!data.nodes.has(sourceId)) continue;
+
+        targets.forEach((targetId) => {
+            if (!data.nodes.has(targetId)) return;
+
+            const targetEmbedded = embeddedNodesMap.get(targetId);
+
+            if (targetEmbedded && targetEmbedded.ownerId === sourceId) return;
+
+            const from = transformId(sourceId, embeddedNodesMap);
+            const to = transformId(targetId, embeddedNodesMap);
+
+            lines.push(`  ${from} -> ${to} ;`);
+        });
+    }
+    lines.push('}');
+    const dotString = lines.join('\n');
+    return {dotString, domIdToIdMap, idToDomIdMap};
+}
+
+function analyzeEmbeddedNodes(graph: Graph): Map<Id, PortMapping> {
+    const map = new Map<Id, PortMapping>();
+
+    for (const [id, node] of graph.nodes) {
+        if (node.type !== 'epic') continue;
+
+        const actions = graph.relations.get(id) ?? [];
+        for (const actionId of actions) {
+            const action = graph.nodes.get(actionId);
+            if (!action) continue;
+
+            if (action.name.includes('Success')) {
+                map.set(actionId, {ownerId: id, portName: 'success'});
+            } else if (action.name.includes('Error')) {
+                map.set(actionId, {ownerId: id, portName: 'error'});
+            }
+        }
+    }
+    return map;
+}
+
+function transformId(id: Id, embeddedMap: Map<Id, PortMapping>): string {
+    const mapping = embeddedMap.get(id);
+    return mapping ? `"${mapping.ownerId}":"${mapping.portName}"` : `"${id}"`;
+}

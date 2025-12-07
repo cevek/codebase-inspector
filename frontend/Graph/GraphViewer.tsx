@@ -1,19 +1,19 @@
 import {Graphviz} from '@hpcc-js/wasm';
 import * as React from 'react';
 import {TransformComponent, TransformWrapper} from 'react-zoom-pan-pinch';
-import {generateGraphviz} from './generateGraphviz';
-import {Graph} from './types';
+import {generateGraphviz} from './utils/generateGraphviz';
 import classes from './GraphViewer.module.css';
+import {Graph, Id} from '../../types';
 
 export const GraphViewer: React.FC<{
     data: Graph;
-    selectedId: string | null;
-    onSelect?: (id: string | null) => void;
+    selectedId: Id | null;
+    onSelect?: (id: Id | null) => void;
 }> = ({data, selectedId, onSelect}) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [{domIdToIdMap, idToDomIdMap}, setMap] = React.useState<{
-        domIdToIdMap: Map<string, string>;
-        idToDomIdMap: Map<string, string>;
+        domIdToIdMap: Map<string, Id>;
+        idToDomIdMap: Map<Id, string>;
     }>({
         domIdToIdMap: new Map(),
         idToDomIdMap: new Map(),
