@@ -1,14 +1,13 @@
 import {useEffect, useLayoutEffect, useState} from 'react';
+import {Graph, Id} from '../../types';
 import classes from './App.module.css';
 import {GraphViewer} from './GraphViewer';
 import {usePersistentState} from './hooks/usePersistentState';
-import {generateGraphClusters} from './utils/generateGraphClusters';
 import {removeNodeRecursive} from './utils/removeNodeRecursive';
-import {Graph, Id} from '../../types';
 
 export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [selectedId, setSelectedId] = useState<Id | null>(null);
-    const [removedIds, setRemovedIds] = usePersistentState<Id[]>('removedIds', []);
+    const [removedIds, setRemovedIds] = usePersistentState<Id[]>({key: 'removedIds'}, []);
     const [graphData, setGraphData] = useState(initialData);
     const [editHistory, setEditHistory] = useState<{removedId: Id}[]>([]);
 

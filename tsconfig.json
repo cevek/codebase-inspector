@@ -2,7 +2,7 @@
     "compilerOptions": {
         "target": "esnext",
         "useDefineForClassFields": true,
-        "module": "commonjs",
+        "module": "preserve",
         "skipLibCheck": true,
 
         /* Bundler mode */

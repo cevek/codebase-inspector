@@ -4,6 +4,7 @@ import {TransformComponent, TransformWrapper} from 'react-zoom-pan-pinch';
 import {generateGraphviz} from './utils/generateGraphviz';
 import classes from './GraphViewer.module.css';
 import {Graph, Id} from '../../types';
+const graphviz = await Graphviz.load();
 
 export const GraphViewer: React.FC<{
     data: Graph;
@@ -19,11 +20,11 @@ export const GraphViewer: React.FC<{
         idToDomIdMap: new Map(),
     });
     React.useEffect(() => {
+        console.log('render graph', data);
         const renderGraph = async () => {
             try {
                 const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz(data);
                 setMap({domIdToIdMap, idToDomIdMap});
-                const graphviz = await Graphviz.load();
                 const svg = graphviz.layout(dotString, 'svg', 'dot');
                 containerRef.current!.innerHTML = svg;
             } catch (err) {
@@ -52,7 +53,10 @@ export const GraphViewer: React.FC<{
         if (groupElement) {
             const id = groupElement.getAttribute('id');
             if (id) {
-                onSelect?.(selectedId === id ? null : domIdToIdMap.get(id) ?? null);
+                const nodeId = domIdToIdMap.get(id);
+                if (nodeId) {
+                    onSelect?.(selectedId === nodeId ? null : nodeId);
+                }
                 return;
             }
         }
