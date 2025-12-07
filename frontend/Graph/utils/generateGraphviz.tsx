@@ -14,7 +14,7 @@ const createEpicHtmlLabel = (label: string, method?: string) => `
     <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="3">
         <TR>
             <TD>${escapeLabel(label)}</TD>
-            <TD><font color="${THEME.colors.apiCall}">${method ?? ''}</font></TD>
+            ${method ? `<TD><font color="${THEME.colors.apiCall}">${method ?? ''}</font></TD>` : ''}
             <TD PORT="success">✔</TD>
             <TD PORT="error">✖</TD>
         </TR>
@@ -116,6 +116,7 @@ export function generateGraphviz(data: Graph, direction: 'TB' | 'LR' = 'TB') {
     }
     lines.push('}');
     const dotString = lines.join('\n');
+    console.log(dotString);
     return {dotString, domIdToIdMap, idToDomIdMap};
 }
 

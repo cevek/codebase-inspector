@@ -119,6 +119,7 @@ class ReduxProjectAnalyzer {
     }
 
     private isNodeEpic(decl: ts.VariableDeclaration): boolean {
+        if (decl.initializer && ts.isArrayLiteralExpression(decl.initializer)) return false;
         const type = this.checker.getTypeAtLocation(decl.name);
         const typeString = this.checker.typeToString(type, undefined, ts.TypeFormatFlags.NoTruncation);
         return CONFIG.epics.typeKeywords.some((keyword) => typeString.includes(keyword));
