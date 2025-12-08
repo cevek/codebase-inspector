@@ -69,3 +69,9 @@
 .removedItem:nth-child(even) {
     background-color: #00000011;
 }
+
+.githubLink {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+}

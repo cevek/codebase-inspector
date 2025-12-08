@@ -140,6 +140,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                 </div>
 
                 <div className={classes.ideSelector}>
+                    <h4>Open in IDE:</h4>
                     <select value={selectedIde} onChange={(e) => setSelectedIde(e.target.value as 'vscode')}>
                         {ideOptions.map((ide) => (
                             <option key={ide.value} value={ide.value}>
@@ -181,6 +182,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                     </div>
                 )}
             </div>
+            <div className={classes.githubLink}><a href="https://github.com/cevek/codebase-inspector" target='_blank'>github</a></div>
         </div>
     );
 };

@@ -4,14 +4,15 @@
         "useDefineForClassFields": true,
         "module": "preserve",
         "skipLibCheck": true,
+        "outDir": "dist",
 
         /* Bundler mode */
-        "noEmit": true,
         "jsx": "react-jsx",
         "resolveJsonModule": true,
 
         /* Linting */
         "strict": true,
         "noFallthroughCasesInSwitch": true
-    }
+    },
+    "exclude": ["./frontend"]
 }

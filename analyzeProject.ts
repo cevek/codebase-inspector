@@ -67,8 +67,9 @@ class ReduxProjectAnalyzer {
             nodes: Object.fromEntries(result.nodes),
             relations: Object.fromEntries(result.relations),
         };
-        fs.writeFileSync('./data.json', JSON.stringify(output));
-        open('http://localhost:5173/#payload=' + compressFileIntoUrlSafeString('./data.json'));
+        // fs.writeFileSync('./data.json', JSON.stringify(output));
+
+        open('http://localhost:5173/#payload=' + compressFileIntoUrlSafeString(JSON.stringify(output)));
         console.log('Analysis complete. data.json saved.');
     }
 
@@ -290,9 +291,8 @@ class EpicBodyAnalyzer {
     }
 }
 
-const folderPath = '/Users/cody/Dev/backoffice/apps/scheduler/';
 try {
-    const analyzer = new ReduxProjectAnalyzer(folderPath);
+    const analyzer = new ReduxProjectAnalyzer('./');
     analyzer.analyze();
 } catch (e) {
     console.error('Error:', e);

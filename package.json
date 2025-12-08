@@ -1,12 +1,15 @@
 {
-    "name": "project-graph",
-    "version": "1.0.0",
+    "name": "frontent-codebase-explorer",
+    "version": "1.0.1",
     "description": "",
-    "main": "index.js",
+    "main": "dist/analyzeProject.js",
     "type": "module",
     "keywords": [],
-    "author": "",
+    "author": "cevek",
     "license": "ISC",
+    "bin": {
+        "frontent-codebase-explorer": "./bin/index.js"
+    },
     "dependencies": {
         "open": "^11.0.0",
         "typescript": "^5.9.3"
