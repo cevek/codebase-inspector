@@ -69,7 +69,7 @@ class ReduxProjectAnalyzer {
         };
         // fs.writeFileSync('./data.json', JSON.stringify(output));
 
-        open('http://localhost:5173/#payload=' + compressFileIntoUrlSafeString(JSON.stringify(output)));
+        open('https://cevek.github.io/codebase-inspector/#payload=' + compressFileIntoUrlSafeString(JSON.stringify(output)));
         console.log('Analysis complete. data.json saved.');
     }
 

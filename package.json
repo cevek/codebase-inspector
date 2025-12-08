@@ -1,14 +1,14 @@
 {
     "name": "frontent-codebase-explorer",
-    "version": "1.0.1",
+    "version": "1.0.10",
     "description": "",
     "main": "dist/analyzeProject.js",
-    "type": "module",
     "keywords": [],
+    "files": ["dist"],
     "author": "cevek",
     "license": "ISC",
     "bin": {
-        "frontent-codebase-explorer": "./bin/index.js"
+        "frontent-codebase-explorer": "./.bin/index.js"
     },
     "dependencies": {
         "open": "^11.0.0",

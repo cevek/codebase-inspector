@@ -1,5 +1,4 @@
-import fs from 'fs';
-import zlib from 'zlib';
+import * as zlib from 'zlib';
 
 export function compressFileIntoUrlSafeString(fileContent: string) {
     const compressedBuffer = zlib.gzipSync(Buffer.from(fileContent), {
