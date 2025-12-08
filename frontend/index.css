@@ -14,7 +14,6 @@ button {
     cursor: pointer;
     border-radius: 4px;
     padding: 2px 5px;
-    margin-left: 10px;
     word-break: keep-all;
 }
 

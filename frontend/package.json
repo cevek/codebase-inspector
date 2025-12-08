@@ -1,0 +1,27 @@
+{
+    "name": "project-graph",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "deploy": "gh-pages -d ./dist"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@hpcc-js/wasm": "^2.29.0",
+        "react-zoom-pan-pinch": "^3.7.0"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.7",
+        "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^5.1.2",
+        "vite": "^7.2.6",
+        "gh-pages": "^6.3.0"
+    }
+}

@@ -7,10 +7,12 @@ import {usePersistentState} from './hooks/usePersistentState';
 import {removeNodeRecursive} from './utils/removeNodeRecursive';
 import {generateGraphClusters} from './utils/generateGraphClusters';
 import {prettifyName} from './utils/prettifyName';
+import {getSubgraph} from './utils/getSubgraph';
 
 export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [selectedId, setSelectedId] = useState<Id | null>(null);
     const [removedIds, setRemovedIds] = usePersistentState<Id[]>({key: 'removedIds', storage: 'session'}, []);
+    const [focusId, setFocusId] = usePersistentState<Id | null>({key: 'focusId', storage: 'session'}, null);
     const [graphData, setGraphData] = useState(initialData);
     const initialClusters = useMemo(() => generateGraphClusters(initialData), []);
     const [clusters, setClusters] = useState(initialClusters);
@@ -44,9 +46,12 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                 newGraph = newGraph2;
             }
         }
+        if (focusId) {
+            newGraph = getSubgraph(newGraph, focusId);
+        }
         setGraphData(newGraph);
         setClusters(generateGraphClusters(newGraph));
-    }, [removedIds, initialData]);
+    }, [removedIds, focusId, initialData]);
 
     useEffect(() => {
         setSelectedId(null);
@@ -90,6 +95,13 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         if (cluster) return prettifyName(cluster.name);
     }
 
+    const handleFocusNode = () => {
+        setFocusId(selectedId);
+    };
+    const handleClearFocusNode = () => {
+        setFocusId(null);
+    };
+
     const selectedNode = selectedId ? graphData.nodes.get(selectedId) : null;
 
     return (
@@ -110,15 +122,24 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                             ? (generateNodeName(selectedId) ?? generateClusterName(selectedId) ?? selectedId)
                             : 'Nothing selected'}
                     </h3>
+                    <div>{selectedNode && <button onClick={handleFocusNode}>Focus Subtree</button>}</div>
                     {selectedNode?.type === 'epic' && selectedNode.apiCall.requests.length > 0 && (
                         <div className={classes.apiCall}>
                             {selectedNode.apiCall.requests[0].type} {selectedNode.apiCall.requests[0].url}
                         </div>
                     )}
+                    {focusId && (
+                        <div className={classes.focusNode}>
+                            <h4 style={{display: 'flex', justifyContent: 'space-between'}}>
+                                Focus:
+                                <button onClick={handleClearFocusNode}>Clear</button>
+                            </h4>
+                            <div>{generateNodeName(focusId)}</div>
+                        </div>
+                    )}
                 </div>
 
                 <div className={classes.ideSelector}>
-                    <h4>Open in IDE:</h4>
                     <select value={selectedIde} onChange={(e) => setSelectedIde(e.target.value as 'vscode')}>
                         {ideOptions.map((ide) => (
                             <option key={ide.value} value={ide.value}>
