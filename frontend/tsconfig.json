@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "useDefineForClassFields": true,
+        "module": "preserve",
+        "skipLibCheck": true,
+        "outDir": "dist",
+        "jsx": "react-jsx",
+        "noEmit": true,
+        "strict": true,
+        "noFallthroughCasesInSwitch": true
+    }
+}

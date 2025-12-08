@@ -1,4 +1,3 @@
-import brotliPromise from 'brotli-dec-wasm';
 
 export async function loadStateFromUrl<T>(urlSafeString: string): Promise<T | null> {
     try {
