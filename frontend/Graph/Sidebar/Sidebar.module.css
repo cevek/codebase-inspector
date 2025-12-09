@@ -17,7 +17,7 @@
     width: 320px;
     background: var(--bg-color);
     padding: 15px;
-    padding-bottom: 45px;
+    padding-bottom: 24px;
     box-sizing: border-box;
     color: var(--text-primary);
     border-right: 1px solid var(--border-color);
@@ -238,8 +238,8 @@
     transition: color 0.2s;
 }
 
-.nodeItem:last-child {
-    border-bottom: none;
+.nodeItem:first-child {
+    border-top: 1px solid var(--border-color);
 }
 
 .nodeItem:hover {

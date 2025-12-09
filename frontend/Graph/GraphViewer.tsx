@@ -34,10 +34,14 @@ export const GraphViewer: React.FC<{
                 setMap({domIdToIdMap, idToDomIdMap});
                 const svg = graphviz.layout(dotString, 'svg', 'dot');
                 containerRef.current!.innerHTML = svg;
+                for (const el of containerRef.current!.querySelectorAll('title')) {
+                    el.remove();
+                }
             } catch (err) {
                 console.error(err);
             }
         };
+
         renderGraph();
     }, [graph, clusters, layoutDirection]);
 
