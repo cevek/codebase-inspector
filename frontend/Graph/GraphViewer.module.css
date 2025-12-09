@@ -1,6 +1,29 @@
-.svg .selected path,
-.svg .selected ellipse {
+.svg {
+    cursor: default !important;
+}
+.selected path,
+.selected ellipse {
     stroke: blue !important;
     stroke-width: 3px !important;
     filter: drop-shadow(0 0 5px rgba(0, 0, 255, 0.5));
+}
+
+.selectedEdge path,
+.selectedEdge polygon {
+    stroke: blue !important;
+    stroke-width: 3px !important;
+}
+
+.selectedEdge[id*='_success'] path,
+.selectedEdge[id*='_success'] polygon {
+    stroke: green !important;
+}
+.selectedEdge[id*='_error'] path,
+.selectedEdge[id*='_error'] polygon {
+    stroke: red !important;
+}
+
+.mainNode path {
+    stroke: darkblue !important;
+    stroke-width: 3px !important;
 }

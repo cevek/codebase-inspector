@@ -1,0 +1,348 @@
+.sidebar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    border-left: 1px solid #ccc;
+
+    --bg-color: #ffffff;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --text-tertiary: #9ca3af;
+    --accent-color: #3b82f6;
+    --border-color: #e5e7eb;
+    --hover-bg: #f3f4f6;
+    --focus-bg: #eff6ff;
+
+    width: 320px;
+    background: var(--bg-color);
+    padding: 15px;
+    padding-bottom: 45px;
+    box-sizing: border-box;
+    color: var(--text-primary);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* --- Header --- */
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.breadcrumbs {
+    font-size: 14px;
+    line-height: 1.4;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.crumbPath {
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.divider {
+    margin: 0 4px;
+    color: var(--text-tertiary);
+}
+
+.crumbCurrent {
+    font-weight: 600;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.subtreeBtn {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.subtreeBtn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: var(--text-tertiary);
+}
+
+/* --- Focus Card --- */
+.focusCard {
+    background: var(--focus-bg);
+    border: 1px solid #dbeafe; /* Чуть темнее фона */
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.cardLabel {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+}
+
+.cardContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.focusValue {
+    font-size: 13px;
+    font-weight: 500;
+    word-break: break-word;
+    /* white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; */
+}
+
+.clearBtn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.clearBtn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+}
+
+/* --- Settings Grid --- */
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.sectionTitle {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.settingsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.controlGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.controlGroup label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.selectWrapper {
+    position: relative;
+    width: 100%;
+}
+
+.selectWrapper select {
+    width: 100%;
+    appearance: none;
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 24px 8px 10px; /* Место для стрелки справа */
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.selectWrapper select:hover {
+    border-color: var(--text-tertiary);
+}
+
+.selectWrapper select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.selectIcon {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-secondary);
+    display: flex;
+}
+
+/* --- Removed Nodes --- */
+.listHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+
+.restoreAllLink {
+    background: none;
+    border: none;
+    color: var(--accent-color);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.restoreAllLink:hover {
+    text-decoration: underline;
+}
+
+.nodeList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.nodeItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 5px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+}
+
+.nodeItem:last-child {
+    border-bottom: none;
+}
+
+.nodeItem:hover {
+    color: var(--text-primary);
+    background: var(--focus-bg);
+}
+
+.nodeName {
+    /* white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; */
+    max-width: 220px;
+    word-wrap: break-word;
+}
+
+.restoreBtn {
+    background: none;
+    border: none;
+    color: var(--accent-color);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateX(-5px);
+    transition: all 0.2s ease;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.nodeItem:hover .restoreBtn {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.restoreBtn:hover {
+    background: var(--focus-bg);
+    border-radius: 4px;
+}
+
+.emptyState {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    padding: 8px 0;
+}
+
+.githubLink a {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    color: gray;
+}
+
+/* --- Help / Shortcuts --- */
+.helpSection {
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.helpHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.shortcutRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.keysGroup {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.plus {
+    font-size: 10px;
+    color: var(--text-tertiary);
+}
+
+/* Стилизация под "клавиши" */
+.kbd {
+    display: inline-block;
+    padding: 2px 6px;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--text-primary);
+    background-color: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+    white-space: nowrap;
+}

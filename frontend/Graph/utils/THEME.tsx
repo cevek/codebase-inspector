@@ -1,7 +1,7 @@
 export const THEME = {
     font: 'Arial',
     fontSize: {
-        clusterLabel: 28,
+        clusterLabel: 20,
         nodeLabel: 14,
     },
     colors: {

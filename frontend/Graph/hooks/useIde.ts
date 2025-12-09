@@ -16,7 +16,8 @@ const ideOptions = [
     {name: 'Cursor', value: 'cursor', link: (url: string) => 'cursor://file/' + url},
 ] as const;
 
-type IdeValue = (typeof ideOptions)[number]['value'];
+export type IdeItem = (typeof ideOptions)[number];
+export type IdeValue = (typeof ideOptions)[number]['value'];
 
 export const useIde = (graphData: Graph) => {
     const [selectedIde, setSelectedIde] = usePersistentState<IdeValue>({key: 'selectedIde'}, ideOptions[0].value);

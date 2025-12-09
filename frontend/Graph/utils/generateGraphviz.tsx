@@ -108,7 +108,7 @@ export function generateGraphviz(data: Graph, clusters: Map<Id, Cluster>, direct
             const from = transformId(sourceId, embeddedNodesMap);
             const to = transformId(targetId, embeddedNodesMap);
 
-            lines.push(`  ${from} -> ${to} ;`);
+            lines.push(`  ${from} -> ${to} [id="${transformEdgeId(sourceId, embeddedNodesMap)}__${transformEdgeId(targetId, embeddedNodesMap)}"];`);
         });
     }
     lines.push('}');
@@ -141,4 +141,8 @@ function analyzeEmbeddedNodes(graph: Graph): Map<Id, PortMapping> {
 function transformId(id: Id, embeddedMap: Map<Id, PortMapping>): string {
     const mapping = embeddedMap.get(id);
     return mapping ? `"${mapping.ownerId}":"${mapping.portName}"` : `"${id}"`;
+}
+function transformEdgeId(id: Id, embeddedMap: Map<Id, PortMapping>): string {
+    const mapping = embeddedMap.get(id);
+    return mapping ? `${mapping.ownerId}_${mapping.portName}` : id;
 }

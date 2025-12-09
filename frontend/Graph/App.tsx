@@ -1,13 +1,13 @@
 import {useEffect, useLayoutEffect, useMemo, useState} from 'react';
-import {Cluster, Graph, Id} from '../../types';
-import classes from './App.module.css';
+import {Graph, Id} from '../../types';
 import {GraphViewer, LayoutDirection} from './GraphViewer';
 import {useIde} from './hooks/useIde';
 import {usePersistentState} from './hooks/usePersistentState';
-import {removeNodeRecursive} from './utils/removeNodeRecursive';
+import {Sidebar} from './Sidebar/Sidebar';
 import {generateGraphClusters} from './utils/generateGraphClusters';
-import {prettifyName} from './utils/prettifyName';
 import {getSubgraph} from './utils/getSubgraph';
+import {prettifyName} from './utils/prettifyName';
+import {removeNodeRecursive} from './utils/removeNodeRecursive';
 
 export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [selectedId, setSelectedId] = useState<Id | null>(null);
@@ -86,13 +86,17 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         setRemovedIds([]);
     };
 
-    function generateNodeName(id: Id) {
+    function generateNodeName(id: Id | null, prettify = true) {
+        if (!id) return null;
         const node = initialData.nodes.get(id);
-        if (node) return prettifyName(node.location.module + '/' + node.name);
+        if (node)
+            return prettify
+                ? prettifyName(node.location.module + '/' + node.name)
+                : node.location.module + '/' + node.name;
     }
-    function generateClusterName(id: Id) {
+    function generateClusterName(id: Id, prettify = true) {
         const cluster = initialClusters.get(id);
-        if (cluster) return prettifyName(cluster.name);
+        if (cluster) return prettify ? prettifyName(cluster.name) : cluster.name;
     }
 
     const handleFocusNode = () => {
@@ -102,10 +106,8 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         setFocusId(null);
     };
 
-    const selectedNode = selectedId ? graphData.nodes.get(selectedId) : null;
-
     return (
-        <div style={{width: '100%', height: '100%'}}>
+        <div style={{width: '100%', height: '100%'}} onClick={() => setSelectedId(null)}>
             <GraphViewer
                 graph={graphData}
                 clusters={clusters}
@@ -113,76 +115,33 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                 onDoubleClick={handleOpenFileInIde}
                 selectedId={selectedId}
                 layoutDirection={layoutDirection}
+                mainId={focusId}
             />
-
-            <div className={classes.sidebar}>
-                <div className={classes.selected}>
-                    <h3>
-                        {selectedId
-                            ? (generateNodeName(selectedId) ?? generateClusterName(selectedId) ?? selectedId)
-                            : 'Nothing selected'}
-                    </h3>
-                    <div>{selectedNode && <button onClick={handleFocusNode}>Focus Subtree</button>}</div>
-                    {selectedNode?.type === 'epic' && selectedNode.apiCall.requests.length > 0 && (
-                        <div className={classes.apiCall}>
-                            {selectedNode.apiCall.requests[0].type} {selectedNode.apiCall.requests[0].url}
-                        </div>
-                    )}
-                    {focusId && (
-                        <div className={classes.focusNode}>
-                            <h4 style={{display: 'flex', justifyContent: 'space-between'}}>
-                                Focus:
-                                <button onClick={handleClearFocusNode}>Clear</button>
-                            </h4>
-                            <div>{generateNodeName(focusId)}</div>
-                        </div>
-                    )}
-                </div>
-
-                <div className={classes.ideSelector}>
-                    <h4>Open in IDE:</h4>
-                    <select value={selectedIde} onChange={(e) => setSelectedIde(e.target.value as 'vscode')}>
-                        {ideOptions.map((ide) => (
-                            <option key={ide.value} value={ide.value}>
-                                {ide.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className={classes.ideSelector}>
-                    <h4>Layout:</h4>
-                    <select
-                        value={layoutDirection}
-                        onChange={(e) => setLayoutDirection(e.target.value as LayoutDirection)}
-                    >
-                        <option value="TB">Top-to-Bottom</option>
-                        <option value="LR">Left-to-Right</option>
-                    </select>
-                </div>
-
-                {removedIds.length > 0 && (
-                    <div className={classes.removedList}>
-                        <div className={classes.removedListHeader}>
-                            <h4>Removed Nodes: </h4>
-                            <button onClick={handleRestoreAll}>Restore All</button>
-                        </div>
-                        <div className={classes.removedListScroll}>
-                            {removedIds
-                                .slice()
-                                .reverse()
-                                .map((id) => (
-                                    <div key={id} className={classes.removedItem}>
-                                        <span>{generateNodeName(id) ?? generateClusterName(id) ?? id}</span>
-                                        <button onClick={() => handleRestoreId(id)}>Restore</button>
-                                    </div>
-                                ))}
-                            {removedIds.length === 0 && <small>None</small>}
-                        </div>
-                    </div>
-                )}
-            </div>
-            <div className={classes.githubLink}><a href="https://github.com/cevek/codebase-inspector" target='_blank'>github</a></div>
+            <Sidebar
+                path={
+                    selectedId
+                        ? (
+                              generateNodeName(selectedId, false) ??
+                              generateClusterName(selectedId, false) ??
+                              selectedId
+                          ).split('/')
+                        : null
+                }
+                focusNode={generateNodeName(focusId, true) ?? null}
+                removedNodes={removedIds.map((id) => ({
+                    id,
+                    name: generateNodeName(id, true) ?? generateClusterName(id, true) ?? id,
+                }))}
+                layoutDirection={layoutDirection}
+                ideOptions={ideOptions}
+                selectedIde={selectedIde}
+                onIdeChange={setSelectedIde}
+                onLayoutChange={setLayoutDirection}
+                onFocusSubtree={handleFocusNode}
+                onClearFocus={handleClearFocusNode}
+                onRestoreAll={handleRestoreAll}
+                onRestoreNode={handleRestoreId}
+            />
         </div>
     );
 };
