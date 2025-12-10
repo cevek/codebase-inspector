@@ -1,0 +1,61 @@
+.app-container {
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #1e1e1e; /* Темная тема */
+  color: #d4d4d4;
+  min-height: 100vh;
+}
+
+.tree-node {
+  margin-top: 4px;
+}
+
+.node-header {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.node-header:hover {
+  background-color: #2d2d2d;
+}
+
+.toggle-icon {
+  margin-right: 6px;
+  color: #858585;
+  width: 16px;
+  height: 16px;
+}
+
+.toggle-placeholder {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+}
+
+/* Стилизация текста */
+.field-name {
+  color: #9cdcfe; /* Голубой для имен свойств */
+  margin-right: 4px;
+}
+
+.type-punctuation {
+  color: #858585; /* Серый для двоеточий, скобок */
+  margin-right: 4px;
+}
+
+.type-name {
+  color: #4ec9b0; /* Зеленоватый для имен типов */
+  font-weight: 500;
+}
+
+.type-primitive { color: #569cd6; } /* Синий для примитивов */
+.type-string-literal { color: #ce9178; } /* Оранжевый для строковых литералов */
+
+/* Отступ для детей */
+.node-children {
+  padding-left: 22px;
+  border-left: 1px solid #333;
+  margin-left: 7px;
+}

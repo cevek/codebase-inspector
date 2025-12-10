@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "useDefineForClassFields": true,
+        "module": "commonjs",
+        "skipLibCheck": true,
+        "outDir": "dist",
+        "jsx": "react-jsx",
+        "strict": true,
+        "esModuleInterop": true,
+        "noFallthroughCasesInSwitch": true
+    },
+    "exclude": ["./frontend"]
+}
