@@ -1,17 +1,21 @@
 {
-    "name": "frontent-codebase-explorer",
-    "version": "1.0.10",
+    "name": "fe-explorer",
+    "version": "1.0.8",
     "description": "",
     "main": "dist/analyzeProject.js",
     "keywords": [],
-    "files": ["dist"],
+
+    "files": [
+        "dist",
+        ".bin"
+    ],
     "author": "cevek",
     "license": "ISC",
     "bin": {
-        "frontent-codebase-explorer": "./.bin/index.js"
+        "fe-explorer": "./.bin/index.js"
     },
     "dependencies": {
-        "open": "^11.0.0",
+        "open": "8.4.2",
         "typescript": "^5.9.3"
     },
     "devDependencies": {

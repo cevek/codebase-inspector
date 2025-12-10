@@ -6,6 +6,7 @@
         "skipLibCheck": true,
         "outDir": "dist",
         "strict": true,
+        "esModuleInterop": true,
         "noFallthroughCasesInSwitch": true
     },
     "exclude": ["./frontend"]

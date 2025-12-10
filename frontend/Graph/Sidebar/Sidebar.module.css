@@ -78,6 +78,13 @@
     border-color: var(--text-tertiary);
 }
 
+/* --- ApiURL --- */
+.apiUrl {
+    background: var(--hover-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+}
 /* --- Focus Card --- */
 .focusCard {
     background: var(--focus-bg);

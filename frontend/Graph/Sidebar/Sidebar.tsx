@@ -3,12 +3,13 @@ import styles from './Sidebar.module.css';
 import {LayoutDirection} from '../GraphViewer';
 import {IdeItem, IdeValue} from '../hooks/useIde';
 import {Id} from '../../../types';
-import { Icons } from './Icons';
+import {Icons} from './Icons';
 
 export const Sidebar: React.FC<{
     path: string[] | null;
     focusNode: string | null;
     removedNodes: {id: Id; name: string}[];
+    apiUrl: {method: string; url: string} | null;
     layoutDirection: LayoutDirection;
     ideOptions: readonly IdeItem[];
     selectedIde: IdeValue;
@@ -20,6 +21,7 @@ export const Sidebar: React.FC<{
     onLayoutChange: (layoutDirection: LayoutDirection) => void;
 }> = ({
     path,
+    apiUrl,
     focusNode,
     removedNodes,
     layoutDirection,
@@ -46,6 +48,7 @@ export const Sidebar: React.FC<{
                         ))}
                         <span className={styles.crumbCurrent}>{path[path.length - 1]}</span>
                     </div>
+                    {apiUrl && <div className={styles.apiUrl}>{apiUrl.method} {apiUrl.url}</div>}
 
                     <button className={styles.subtreeBtn} onClick={onFocusSubtree}>
                         <Icons.Tree />
@@ -121,7 +124,9 @@ export const Sidebar: React.FC<{
                         <div className={styles.selectWrapper}>
                             <select value={selectedIde} onChange={(e) => onIdeChange(e.target.value as 'vscode')}>
                                 {ideOptions.map((opt) => (
-                                    <option key={opt.value}>{opt.name}</option>
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.name}
+                                    </option>
                                 ))}
                             </select>
                             <span className={styles.selectIcon}>

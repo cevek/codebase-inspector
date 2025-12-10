@@ -18,7 +18,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [clusters, setClusters] = useState(initialClusters);
     const [editHistory, setEditHistory] = useState<{removedId: Id}[]>([]);
     const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(graphData);
-    const [layoutDirection, setLayoutDirection] = usePersistentState<LayoutDirection>({key: 'layoutDirection'}, 'TB');
+    const [layoutDirection, setLayoutDirection] = usePersistentState<LayoutDirection>({key: 'layoutDirection'}, 'LR');
 
     useLayoutEffect(() => {
         let newGraph = initialData;
@@ -106,17 +106,20 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         setFocusId(null);
     };
 
+    const selectedNode = selectedId ? initialData.nodes.get(selectedId) ?? null : null;
     return (
-        <div style={{width: '100%', height: '100%'}} onClick={() => setSelectedId(null)}>
-            <GraphViewer
-                graph={graphData}
-                clusters={clusters}
-                onSelect={setSelectedId}
-                onDoubleClick={handleOpenFileInIde}
-                selectedId={selectedId}
-                layoutDirection={layoutDirection}
-                mainId={focusId}
-            />
+        <div style={{width: '100%', height: '100%'}}>
+            <div onClick={() => setSelectedId(null)}>
+                <GraphViewer
+                    graph={graphData}
+                    clusters={clusters}
+                    onSelect={setSelectedId}
+                    onDoubleClick={handleOpenFileInIde}
+                    selectedId={selectedId}
+                    layoutDirection={layoutDirection}
+                    mainId={focusId}
+                />
+            </div>
             <Sidebar
                 path={
                     selectedId
@@ -132,6 +135,14 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                     id,
                     name: generateNodeName(id, true) ?? generateClusterName(id, true) ?? id,
                 }))}
+                apiUrl={
+                    selectedNode?.type === 'epic' && selectedNode.apiCall.requests.length > 0
+                        ? {
+                              method: selectedNode.apiCall.requests[0].type,
+                              url: selectedNode.apiCall.requests[0].url,
+                          }
+                        : null
+                }
                 layoutDirection={layoutDirection}
                 ideOptions={ideOptions}
                 selectedIde={selectedIde}

@@ -7,7 +7,7 @@ This tool analyzes TypeScript frontend projects, specifically focusing on Redux 
 To analyze your project, run the following command in the root directory of your TypeScript project (where `tsconfig.json` is located):
 
 ```bash
-npx frontent-codebase-explorer
+npx fe-explorer
 ```
 
 This will start a local server and open a web page displaying the project's dependency graph.
