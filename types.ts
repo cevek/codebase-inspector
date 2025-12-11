@@ -27,7 +27,11 @@ export type Epic = BaseItem & {
     apiCall: ApiCall;
 };
 
-export type Item = Action | Epic;
+export type Component = BaseItem & {
+    type: 'component';
+};
+
+export type Item = Action | Epic | Component;
 
 export interface Cluster {
     id: Id;

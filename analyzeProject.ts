@@ -1,11 +1,11 @@
-import * as fs from 'node:fs';
 import * as path from 'node:path';
+import open from 'open';
 import * as ts from 'typescript';
 import {renormalizeGraphIds} from './renormalizeGraphIds';
+import {Action, ApiCall, ApiRequest, Component, Epic, Id, Item} from './types';
 import {getLocation, getNodeKey, getUrlFromArgument} from './utils/ast';
-import {Action, ApiCall, ApiRequest, Epic, Id, Item} from './types';
 import {compressFileIntoUrlSafeString} from './utils/compressFile';
-import open from 'open';
+import {readdirSync} from 'node:fs';
 
 export const CONFIG = {
     apiClients: {
@@ -44,6 +44,21 @@ export const CONFIG = {
         typeKeywords: ['Epic'],
         operators: {filter: 'ofType'},
     },
+    components: {
+        types: [
+            ' => JSX.Element',
+            '.JSX.Element',
+            '.JSXElementConstructor',
+            'React.FC',
+            'React.FunctionComponent',
+            'React.NamedExoticComponent',
+            'React.MemoExoticComponent',
+            'React.LazyExoticComponent',
+            'React.ForwardRefExoticComponent',
+            'React.ComponentType',
+            '.OverridableComponent',
+        ],
+    },
 } as const;
 
 type HttpMethod = ApiRequest['type'];
@@ -53,6 +68,7 @@ class ReduxProjectAnalyzer {
     private checker: ts.TypeChecker;
     private actions = new Map<Id, Action>();
     private epics = new Map<Id, Epic>();
+    private components = new Map<Id, {data: Component; node: ts.Node}>();
     private relations = new Map<Id, Id[]>();
 
     constructor(private folder: string) {
@@ -77,8 +93,14 @@ class ReduxProjectAnalyzer {
     public analyze() {
         this.collectActions();
         this.collectEpics();
+        this.collectComponents();
+        console.log(this.components);
 
-        const allNodes = new Map<Id, Item>([...this.actions, ...this.epics]);
+        const allNodes = new Map<Id, Item>([
+            ...this.actions,
+            ...this.epics,
+            ...[...this.components.entries()].map(([k, v]) => [k, v.data] as const),
+        ]);
         const result = renormalizeGraphIds({nodes: allNodes, relations: this.relations});
 
         const output = {
@@ -87,10 +109,10 @@ class ReduxProjectAnalyzer {
         };
         // open('http://localhost:5174/#payload=' + compressFileIntoUrlSafeString(JSON.stringify(output)));
         // fs.writeFileSync('./data.json', JSON.stringify(output, null, 2));
-        open(
-            'https://cevek.github.io/codebase-inspector/#payload=' +
-                compressFileIntoUrlSafeString(JSON.stringify(output)),
-        );
+        // open(
+        //     'https://cevek.github.io/codebase-inspector/#payload=' +
+        //         compressFileIntoUrlSafeString(JSON.stringify(output)),
+        // );
         console.log('Analysis complete');
     }
 
@@ -124,6 +146,53 @@ class ReduxProjectAnalyzer {
                 location: getLocation(this.folder, ident),
                 type: 'action',
             });
+        }
+    }
+
+    private collectComponents() {
+        for (const sourceFile of this.program.getSourceFiles()) {
+            if (sourceFile.isDeclarationFile) continue;
+
+            const visit = (node: ts.Node) => {
+                if (ts.isVariableDeclaration(node)) {
+                    const ident = node.name;
+                    if (ts.isIdentifier(ident)) {
+                        this.checkIdentifierForComponent(ident, node);
+                    }
+                }
+                if (ts.isFunctionDeclaration(node)) {
+                    if (node.name && ts.isIdentifier(node.name)) {
+                        this.checkIdentifierForComponent(node.name, node.body!);
+                    }
+                }
+                ts.forEachChild(node, visit);
+            };
+
+            ts.forEachChild(sourceFile, visit);
+        }
+    }
+
+    private checkIdentifierForComponent(ident: ts.Identifier, body: ts.Node) {
+        if (!/^[A-Z]/.test(ident.text)) return;
+
+        const type = this.checker.getTypeAtLocation(ident);
+        let typeString = this.checker.typeToString(type, ident, ts.TypeFormatFlags.NoTruncation);
+
+        typeString = typeString.replace(/import\(\".*?node_modules\/\@types\/react\/.*?\"\)/g, 'React');
+
+        const isComponent = CONFIG.components.types.some((keyword) => typeString.includes(keyword));
+
+        if (isComponent) {
+            this.components.set(getNodeKey(ident), {
+                data: {
+                    name: ident.text,
+                    location: getLocation(this.folder, ident),
+                    type: 'component',
+                },
+                node: ident,
+            });
+        } else {
+            // console.log(ident.text, isComponent, typeString);
         }
     }
 
@@ -314,9 +383,12 @@ class EpicBodyAnalyzer {
 }
 
 try {
-    // const analyzer = new ReduxProjectAnalyzer('/Users/cody/Dev/backoffice/apps/scheduler/');
-    const analyzer = new ReduxProjectAnalyzer('./');
+    // for (const app of readdirSync('/Users/cody/Dev/backoffice/apps/')) {
+    const app = 'scheduler';
+    const analyzer = new ReduxProjectAnalyzer('/Users/cody/Dev/backoffice/apps/' + app);
+    // const analyzer = new ReduxProjectAnalyzer('./frontend');
     analyzer.analyze();
+    // }
 } catch (e) {
     console.error('Error:', e);
 }
