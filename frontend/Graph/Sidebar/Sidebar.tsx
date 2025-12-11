@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {JSX} from 'react';
 import styles from './Sidebar.module.css';
 import {LayoutDirection} from '../GraphViewer';
 import {IdeItem, IdeValue} from '../hooks/useIde';
@@ -9,7 +9,7 @@ export const Sidebar: React.FC<{
     path: string[] | null;
     focusNode: string | null;
     removedNodes: {id: Id; name: string}[];
-    apiUrl: {method: string; url: string} | null;
+    nodeDetails: JSX.Element[];
     layoutDirection: LayoutDirection;
     ideOptions: readonly IdeItem[];
     selectedIde: IdeValue;
@@ -21,7 +21,7 @@ export const Sidebar: React.FC<{
     onLayoutChange: (layoutDirection: LayoutDirection) => void;
 }> = ({
     path,
-    apiUrl,
+    nodeDetails,
     focusNode,
     removedNodes,
     layoutDirection,
@@ -48,7 +48,13 @@ export const Sidebar: React.FC<{
                         ))}
                         <span className={styles.crumbCurrent}>{path[path.length - 1]}</span>
                     </div>
-                    {apiUrl && <div className={styles.apiUrl}>{apiUrl.method} {apiUrl.url}</div>}
+                    {nodeDetails && nodeDetails.length > 0 && (
+                        <div className={styles.nodeDetails}>
+                            {nodeDetails.map((v, i) => (
+                                <div key={i}>{v}</div>
+                            ))}
+                        </div>
+                    )}
 
                     <button className={styles.subtreeBtn} onClick={onFocusSubtree}>
                         <Icons.Tree />
@@ -139,8 +145,30 @@ export const Sidebar: React.FC<{
             {/* --- Help / Shortcuts --- */}
             <div className={styles.helpSection}>
                 <div className={styles.helpHeader}>
+                    <span>Labels</span>
+                </div>
+                <div className={styles.shortcutRow}>
+                    <span>Entities</span>
+                    <kbd className={styles.kbd}>E</kbd>
+                </div>
+                <div className={styles.shortcutRow}>
+                    <span>Services</span>
+                    <kbd className={styles.kbd}>S</kbd>
+                </div>
+                <div className={styles.shortcutRow}>
+                    <span>Data Providers</span>
+                    <kbd className={styles.kbd}>DP</kbd>
+                </div>
+                <div className={styles.shortcutRow}>
+                    <span>Mappings</span>
+                    <kbd className={styles.kbd}>M</kbd>
+                </div>
+            </div>
+            <div className={styles.helpSection}>
+                <div className={styles.helpHeader}>
                     <span>Shortcuts</span>
                 </div>
+
                 <div className={styles.shortcutRow}>
                     <span>Remove Node</span>
                     <kbd className={styles.kbd}>Backspace</kbd>

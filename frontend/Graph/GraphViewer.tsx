@@ -5,19 +5,21 @@ import {generateGraphviz} from './utils/generateGraphviz';
 import classes from './GraphViewer.module.css';
 import {Cluster, Graph, Id} from '../../types';
 import {useIgnoreClickOnDrag} from './hooks/useIgnoreDraggin';
+import {EmbeddedNodeMap} from './types';
 const graphviz = await Graphviz.load();
 
 export type LayoutDirection = 'TB' | 'LR';
 
 export const GraphViewer: React.FC<{
     graph: Graph;
+    embeddedNodesMap: EmbeddedNodeMap;
     clusters: Map<Id, Cluster>;
     selectedId: Id | null;
     mainId: Id | null;
     onSelect?: (id: Id | null) => void;
     onDoubleClick?: (id: Id) => void;
     layoutDirection?: LayoutDirection;
-}> = ({graph, clusters, selectedId, mainId, onSelect, onDoubleClick, layoutDirection = 'TB'}) => {
+}> = ({graph, clusters, embeddedNodesMap, selectedId, mainId, onSelect, onDoubleClick, layoutDirection = 'TB'}) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [{domIdToIdMap, idToDomIdMap}, setMap] = React.useState<{
         domIdToIdMap: Map<string, Id>;
@@ -30,7 +32,12 @@ export const GraphViewer: React.FC<{
     React.useEffect(() => {
         const renderGraph = async () => {
             try {
-                const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz(graph, clusters, layoutDirection);
+                const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz(
+                    graph,
+                    embeddedNodesMap,
+                    clusters,
+                    layoutDirection,
+                );
                 setMap({domIdToIdMap, idToDomIdMap});
                 const svg = graphviz.layout(dotString, 'svg', 'dot');
                 containerRef.current!.innerHTML = svg;
@@ -68,7 +75,6 @@ export const GraphViewer: React.FC<{
     React.useEffect(() => {
         if (containerRef.current) {
             if (mainId) {
-                console.log(idToDomIdMap.get(mainId));
                 const element = containerRef.current.querySelector(`#${idToDomIdMap.get(mainId)}`);
                 element?.classList.add(classes.mainNode);
             } else {

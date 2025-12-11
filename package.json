@@ -1,6 +1,6 @@
 {
     "name": "fe-explorer",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "description": "",
     "main": "dist/analyzeProject.js",
     "keywords": [],

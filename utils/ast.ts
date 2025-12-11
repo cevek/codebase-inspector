@@ -1,6 +1,7 @@
 import * as ts from 'typescript';
-import {basename, dirname} from 'node:path';
+import path, {basename, dirname} from 'node:path';
 import {Id, Loc} from '../types';
+import {CONFIG} from '../analyzeProject';
 
 export function getNodeKey(node: ts.Node): Id {
     const sourceFile = node.getSourceFile();
@@ -15,17 +16,27 @@ export function getUrlFromArgument(arg: ts.Node, sourceFile: ts.SourceFile): str
     return printer.printNode(ts.EmitHint.Unspecified, arg, sourceFile);
 }
 
-export function getLocation(node: ts.Node): Loc {
+export function getLocation(tsconfigDir: string, node: ts.Node): Loc {
     const sourceFile = node.getSourceFile();
+    const fileName = path.resolve(tsconfigDir, sourceFile.fileName);
 
     const {line, character} = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-    let module = basename(dirname(sourceFile.fileName));
+    let module = basename(dirname(fileName));
 
-    if (sourceFile.fileName.includes('/common/')) module = 'common/' + module;
+    if (fileName.includes('/common/')) module = 'common/' + module;
+
+    let type: Loc['layer'] = null;
+    for (const layer of CONFIG.layers) {
+        if (fileName.match(layer.regex)) {
+            type = layer.type;
+            break;
+        }
+    }
 
     return {
-        url: sourceFile.fileName + ':' + (line + 1) + ':' + (character + 1),
+        url: fileName + ':' + (line + 1) + ':' + (character + 1),
         module,
+        layer: type,
     };
 }
 

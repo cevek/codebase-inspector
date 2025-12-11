@@ -7,7 +7,7 @@ import {Action, ApiCall, ApiRequest, Epic, Id, Item} from './types';
 import {compressFileIntoUrlSafeString} from './utils/compressFile';
 import open from 'open';
 
-const CONFIG = {
+export const CONFIG = {
     apiClients: {
         RestAPI: {
             methods: {get: 'GET', post: 'POST', put: 'PUT', del: 'DELETE'},
@@ -18,6 +18,24 @@ const CONFIG = {
             urlArgIndex: 0,
         },
     },
+    layers: [
+        {
+            regex: /\/services\/(?!dataProviders\/)/,
+            type: 'S',
+        },
+        {
+            regex: /\/dataProviders\//,
+            type: 'DP',
+        },
+        {
+            regex: /\/entities\//,
+            type: 'E',
+        },
+        {
+            regex: /\/mappings\//,
+            type: 'M',
+        },
+    ],
     actions: {
         typeKeywords: ['ActionCreator', 'CallHistoryMethodAction', '@@router/'],
     },
@@ -26,7 +44,7 @@ const CONFIG = {
         typeKeywords: ['Epic'],
         operators: {filter: 'ofType'},
     },
-};
+} as const;
 
 type HttpMethod = ApiRequest['type'];
 
@@ -37,15 +55,15 @@ class ReduxProjectAnalyzer {
     private epics = new Map<Id, Epic>();
     private relations = new Map<Id, Id[]>();
 
-    constructor(folder: string) {
-        const {program, checker} = this.createProgram(folder);
+    constructor(private folder: string) {
+        const {program, checker} = this.createProgram();
         this.program = program;
         this.checker = checker;
     }
 
-    private createProgram(folder: string) {
-        const tsConfigPath = ts.findConfigFile(folder, ts.sys.fileExists, 'tsconfig.json');
-        if (!tsConfigPath) throw new Error(`Could not find tsconfig.json in ${folder}`);
+    private createProgram() {
+        const tsConfigPath = ts.findConfigFile(this.folder, ts.sys.fileExists, 'tsconfig.json');
+        if (!tsConfigPath) throw new Error(`Could not find tsconfig.json in ${this.folder}`);
 
         const configFile = ts.readConfigFile(tsConfigPath, ts.sys.readFile);
         const parsedConfig = ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(tsConfigPath));
@@ -67,8 +85,8 @@ class ReduxProjectAnalyzer {
             nodes: Object.fromEntries(result.nodes),
             relations: Object.fromEntries(result.relations),
         };
-        // fs.writeFileSync('./data.json', JSON.stringify(output));
-
+        // open('http://localhost:5174/#payload=' + compressFileIntoUrlSafeString(JSON.stringify(output)));
+        // fs.writeFileSync('./data.json', JSON.stringify(output, null, 2));
         open(
             'https://cevek.github.io/codebase-inspector/#payload=' +
                 compressFileIntoUrlSafeString(JSON.stringify(output)),
@@ -103,7 +121,7 @@ class ReduxProjectAnalyzer {
         if (isAction) {
             this.actions.set(getNodeKey(ident), {
                 name: ident.text,
-                location: getLocation(ident),
+                location: getLocation(this.folder, ident),
                 type: 'action',
             });
         }
@@ -142,7 +160,7 @@ class ReduxProjectAnalyzer {
             realBody = body.body;
         }
 
-        const analyzer = new EpicBodyAnalyzer(realBody, this.checker, this.actions, sourceFile);
+        const analyzer = new EpicBodyAnalyzer(this.folder, realBody, this.checker, this.actions, sourceFile);
         const {subscriptions, dispatches, apiCall} = analyzer.analyze();
 
         subscriptions.forEach((subId) => this.addRelation(subId, epicId));
@@ -151,7 +169,7 @@ class ReduxProjectAnalyzer {
         this.epics.set(epicId, {
             name,
             type: 'epic',
-            location: getLocation(startNode),
+            location: getLocation(this.folder, startNode),
             apiCall,
         });
     }
@@ -165,9 +183,10 @@ class ReduxProjectAnalyzer {
 class EpicBodyAnalyzer {
     private subscriptions: Id[] = [];
     private dispatches: Id[] = [];
-    private apiCall: ApiCall = {requests: [], successId: null, errorId: null};
+    private apiCall: ApiCall = {requests: []};
 
     constructor(
+        private folder: string,
         private body: ts.Node | undefined,
         private checker: ts.TypeChecker,
         private actionsMap: Map<Id, Action>,
@@ -227,7 +246,7 @@ class EpicBodyAnalyzer {
                 this.apiCall.requests.push({
                     type: httpMethod as HttpMethod,
                     url: getUrlFromArgument(urlArg, this.sourceFile),
-                    location: getLocation(node),
+                    location: getLocation(this.folder, node),
                 });
             }
         }
@@ -295,6 +314,7 @@ class EpicBodyAnalyzer {
 }
 
 try {
+    // const analyzer = new ReduxProjectAnalyzer('/Users/cody/Dev/backoffice/apps/scheduler/');
     const analyzer = new ReduxProjectAnalyzer('./');
     analyzer.analyze();
 } catch (e) {

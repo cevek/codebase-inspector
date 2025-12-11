@@ -1,33 +1,49 @@
 import {Cluster, Graph, Id} from '../../../types';
-import {generateGraphClusters} from './generateGraphClusters';
+import {EmbeddedNodeMap, PortMapping} from '../types';
+import {analyzeEmbeddedNodes} from './analyzeEmbeddedNodes';
 import {THEME} from './THEME';
-
-type PortMapping = {
-    ownerId: string;
-    portName: string;
-};
 
 const sanitizeId = (id: string) => id.replace(/\$|:|\//g, '_');
 const escapeLabel = (label: string) => label.replace(/"/g, '\\"');
 
-const createEpicHtmlLabel = (label: string, method?: string) => `
+const createEpicHtmlLabel = ({
+    layer,
+    label,
+    method,
+    triggerPort,
+    successPort,
+    errorPort,
+}: {
+    layer: string;
+    label: string;
+    method: string | null;
+    triggerPort: boolean | null;
+    successPort: boolean | null;
+    errorPort: boolean | null;
+}) => `
     <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="3">
         <TR>
+            ${layer ? `<TD>${layer}</TD>` : ''}
+            ${triggerPort ? `<TD PORT="trigger">📍</TD>` : ''}
             <TD>${escapeLabel(label)}</TD>
             ${method ? `<TD><font color="${THEME.colors.apiCall}">${method ?? ''}</font></TD>` : ''}
-            <TD PORT="success">✔</TD>
-            <TD PORT="error">✖</TD>
+            ${successPort ? `<TD PORT="success">✔</TD>` : ''}
+            ${errorPort ? `<TD PORT="error">✖</TD>` : ''}
         </TR>
     </TABLE>
 `;
 // ${url ? `<TR><TD COLSPAN="3"><font color="${THEME.colors.apiCall}">${url}</font></TD></TR>` : ''}
 
-export function generateGraphviz(data: Graph, clusters: Map<Id, Cluster>, direction: 'TB' | 'LR' = 'TB') {
+export function generateGraphviz(
+    data: Graph,
+    embeddedNodesMap: EmbeddedNodeMap,
+    clusters: Map<Id, Cluster>,
+    direction: 'TB' | 'LR' = 'TB',
+) {
     const domIdToIdMap = new Map<string, Id>();
     const idToDomIdMap = new Map<Id, string>();
     const renderedNodeIds = new Set<Id>();
 
-    const embeddedNodesMap = analyzeEmbeddedNodes(data);
     const lines: string[] = [];
 
     lines.push('digraph G {');
@@ -48,22 +64,30 @@ export function generateGraphviz(data: Graph, clusters: Map<Id, Cluster>, direct
 
     function renderNode(id: Id): string {
         const node = data.nodes.get(id);
-        if (!node || embeddedNodesMap.has(id)) return '';
+        if (!node || embeddedNodesMap.actionToEpicMap.has(id)) return '';
 
         renderedNodeIds.add(id);
         const domId = registerDomId(id);
-        const label = escapeLabel(node.name);
+
+        let layerHtml = '';
+        if (node.location.layer) layerHtml = `<font color="gray">${node.location.layer}</font> `;
+        const label = layerHtml + escapeLabel(node.name);
 
         if (node.type === 'epic') {
-            const hasEmbedded = [...embeddedNodesMap.values()].some((v) => v.ownerId === id);
-            if (hasEmbedded) {
-                const [req] = node.apiCall.requests;
-                const htmlLabel = createEpicHtmlLabel(node.name, req?.type);
-                return `    "${id}" [id="${domId}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="${THEME.colors.epic.border}", label=<${htmlLabel}>];`;
-            }
-            return `    "${id}" [id="${domId}", label="${label}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="${THEME.colors.epic.border}"];`;
+            const embeddedNodes = embeddedNodesMap.epicToActionsMap.get(id);
+            const [req] = node.apiCall.requests ?? [];
+            return `    "${id}" [id="${domId}", shape=box, style="filled,rounded", fillcolor="${
+                THEME.colors.epic.fill
+            }", color="${THEME.colors.epic.border}", label=<${createEpicHtmlLabel({
+                layer: layerHtml,
+                label: node.name,
+                method: req?.type ?? null,
+                triggerPort: embeddedNodes?.some((v) => v.portName === 'trigger') ?? null,
+                successPort: embeddedNodes?.some((v) => v.portName === 'success') ?? null,
+                errorPort: embeddedNodes?.some((v) => v.portName === 'error') ?? null,
+            })}>];`;
         }
-        return `    "${id}" [id="${domId}", label="${label}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="${THEME.colors.actionNode.border}"];`;
+        return `    "${id}" [id="${domId}", label=<${label}>, shape=box, style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="${THEME.colors.actionNode.border}"];`;
     }
 
     function traverseCluster(cluster: Cluster) {
@@ -101,14 +125,19 @@ export function generateGraphviz(data: Graph, clusters: Map<Id, Cluster>, direct
         targets.forEach((targetId) => {
             if (!data.nodes.has(targetId)) return;
 
-            const targetEmbedded = embeddedNodesMap.get(targetId);
-
-            if (targetEmbedded && targetEmbedded.ownerId === sourceId) return;
+            const aEmbedded = embeddedNodesMap.epicToActionsMap.get(sourceId);
+            const bEmbedded = embeddedNodesMap.actionToEpicMap.get(sourceId);
+            if (aEmbedded?.some((v) => v.subId === targetId) || bEmbedded?.ownerId === targetId) return;
 
             const from = transformId(sourceId, embeddedNodesMap);
             const to = transformId(targetId, embeddedNodesMap);
 
-            lines.push(`  ${from} -> ${to} [id="${transformEdgeId(sourceId, embeddedNodesMap)}__${transformEdgeId(targetId, embeddedNodesMap)}"];`);
+            lines.push(
+                `  ${from} -> ${to} [id="${transformEdgeId(sourceId, embeddedNodesMap)}__${transformEdgeId(
+                    targetId,
+                    embeddedNodesMap,
+                )}"];`,
+            );
         });
     }
     lines.push('}');
@@ -117,32 +146,11 @@ export function generateGraphviz(data: Graph, clusters: Map<Id, Cluster>, direct
     return {dotString, domIdToIdMap, idToDomIdMap};
 }
 
-function analyzeEmbeddedNodes(graph: Graph): Map<Id, PortMapping> {
-    const map = new Map<Id, PortMapping>();
-
-    for (const [id, node] of graph.nodes) {
-        if (node.type !== 'epic') continue;
-
-        const actions = graph.relations.get(id) ?? [];
-        for (const actionId of actions) {
-            const action = graph.nodes.get(actionId);
-            if (!action) continue;
-
-            if (action.name.includes('Success')) {
-                map.set(actionId, {ownerId: id, portName: 'success'});
-            } else if (action.name.includes('Error')) {
-                map.set(actionId, {ownerId: id, portName: 'error'});
-            }
-        }
-    }
-    return map;
-}
-
-function transformId(id: Id, embeddedMap: Map<Id, PortMapping>): string {
-    const mapping = embeddedMap.get(id);
+function transformId(id: Id, embeddedMap: EmbeddedNodeMap): string {
+    const mapping = embeddedMap.actionToEpicMap.get(id);
     return mapping ? `"${mapping.ownerId}":"${mapping.portName}"` : `"${id}"`;
 }
-function transformEdgeId(id: Id, embeddedMap: Map<Id, PortMapping>): string {
-    const mapping = embeddedMap.get(id);
+function transformEdgeId(id: Id, embeddedMap: EmbeddedNodeMap): string {
+    const mapping = embeddedMap.actionToEpicMap.get(id);
     return mapping ? `${mapping.ownerId}_${mapping.portName}` : id;
 }

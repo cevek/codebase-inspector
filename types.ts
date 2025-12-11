@@ -7,6 +7,7 @@ export type BaseItem = {
 export type Loc = {
     url: string;
     module: string;
+    layer: null | 'DP' | 'E' | 'M' | 'S';
 };
 
 export type ApiRequest = {
@@ -16,8 +17,6 @@ export type ApiRequest = {
 };
 export type ApiCall = {
     requests: ApiRequest[];
-    successId: Id | null;
-    errorId: Id | null;
 };
 export type Action = BaseItem & {
     type: 'action';

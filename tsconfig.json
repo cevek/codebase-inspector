@@ -7,6 +7,7 @@
         "outDir": "dist",
         "strict": true,
         "esModuleInterop": true,
+        "removeComments": true,
         "noFallthroughCasesInSwitch": true
     },
     "exclude": ["./frontend"]
