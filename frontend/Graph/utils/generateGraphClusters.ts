@@ -1,11 +1,11 @@
-import {Graph, Cluster, Id} from '../../../types';
+import {Cluster, Id} from '../../../types';
 
-export function generateGraphClusters(graph: Graph): Map<Id, Cluster> {
+export function generateGraphClusters(nodes: {id: Id; module: string}[]): Map<Id, Cluster> {
     const clusters = new Map<Id, Cluster>();
+    // return clusters;
     const pathKeyToIdMap = new Map<string, Id>();
-
-    for (const [nodeId, node] of graph.nodes) {
-        const pathString = node.location.module;
+    for (const node of nodes) {
+        const pathString = node.module;
 
         if (!pathString) continue;
 
@@ -16,9 +16,7 @@ export function generateGraphClusters(graph: Graph): Map<Id, Cluster> {
 
         pathParts.forEach((part, index) => {
             partsForId.push(part);
-
             const fullPathKey = partsForId.join('/');
-
             let clusterId = pathKeyToIdMap.get(fullPathKey);
             let cluster: Cluster;
 
@@ -43,15 +41,10 @@ export function generateGraphClusters(graph: Graph): Map<Id, Cluster> {
                         }
                     }
                 }
-            } else {
-                cluster = clusters.get(clusterId)!;
-            }
+            } else cluster = clusters.get(clusterId)!;
 
             const isLastPart = index === pathParts.length - 1;
-            if (isLastPart) {
-                cluster.nodes.push(nodeId);
-            }
-
+            if (isLastPart) cluster.nodes.push(node.id);
             parentId = clusterId;
         });
     }

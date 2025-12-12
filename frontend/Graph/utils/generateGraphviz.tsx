@@ -1,6 +1,6 @@
-import {Cluster, Graph, Id} from '../../../types';
-import {EmbeddedNodeMap, PortMapping} from '../types';
-import {analyzeEmbeddedNodes} from './analyzeEmbeddedNodes';
+import {Cluster, Id} from '../../../types';
+import {Graph} from '../Graph';
+import {PortName} from '../types';
 import {THEME} from './THEME';
 
 const sanitizeId = (id: string) => id.replace(/\$|:|\//g, '_');
@@ -34,12 +34,7 @@ const createEpicHtmlLabel = ({
 `;
 // ${url ? `<TR><TD COLSPAN="3"><font color="${THEME.colors.apiCall}">${url}</font></TD></TR>` : ''}
 
-export function generateGraphviz(
-    data: Graph,
-    embeddedNodesMap: EmbeddedNodeMap,
-    clusters: Map<Id, Cluster>,
-    direction: 'TB' | 'LR' = 'TB',
-) {
+export function generateGraphviz(data: Graph, groupByModules: boolean, direction: 'TB' | 'LR' = 'TB') {
     const domIdToIdMap = new Map<string, Id>();
     const idToDomIdMap = new Map<Id, string>();
     const renderedNodeIds = new Set<Id>();
@@ -64,7 +59,7 @@ export function generateGraphviz(
 
     function renderNode(id: Id): string {
         const node = data.nodes.get(id);
-        if (!node || embeddedNodesMap.actionToEpicMap.has(id)) return '';
+        if (!node) return '';
 
         renderedNodeIds.add(id);
         const domId = registerDomId(id);
@@ -74,18 +69,44 @@ export function generateGraphviz(
         const label = layerHtml + escapeLabel(node.name);
 
         if (node.type === 'epic') {
-            const embeddedNodes = embeddedNodesMap.epicToActionsMap.get(id);
+            const epicId = id;
+            const reverseRelations = data.reverseRelationsMap.get(epicId) ?? [];
+            const relations = data.relationsMap.get(epicId) ?? [];
             const [req] = node.apiCall.requests ?? [];
-            return `    "${id}" [id="${domId}", shape=box, style="filled,rounded", fillcolor="${
-                THEME.colors.epic.fill
-            }", color="${THEME.colors.epic.border}", label=<${createEpicHtmlLabel({
+            const triggerPort = Boolean(
+                reverseRelations.some((relation) =>
+                    data.portMappings.some(
+                        (pm) =>
+                            pm.relation === relation && (pm.toPortName === 'trigger' || pm.fromPortName === 'trigger'),
+                    ),
+                ),
+            );
+            const successPort = Boolean(
+                relations.some((relation) =>
+                    data.portMappings.some(
+                        (pm) =>
+                            pm.relation === relation && (pm.toPortName === 'success' || pm.fromPortName === 'success'),
+                    ),
+                ),
+            );
+            const errorPort = Boolean(
+                relations.some((relation) =>
+                    data.portMappings.some(
+                        (pm) => pm.relation === relation && (pm.toPortName === 'error' || pm.fromPortName === 'error'),
+                    ),
+                ),
+            );
+
+            const label = createEpicHtmlLabel({
                 layer: layerHtml,
                 label: node.name,
                 method: req?.type ?? null,
-                triggerPort: embeddedNodes?.some((v) => v.portName === 'trigger') ?? null,
-                successPort: embeddedNodes?.some((v) => v.portName === 'success') ?? null,
-                errorPort: embeddedNodes?.some((v) => v.portName === 'error') ?? null,
-            })}>];`;
+                triggerPort,
+                successPort,
+                errorPort,
+            });
+
+            return `    "${epicId}" [id="${domId}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="${THEME.colors.epic.border}", label=<${label}>];`;
         }
         return `    "${id}" [id="${domId}", label=<${label}>, shape=box, style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="${THEME.colors.actionNode.border}"];`;
     }
@@ -105,11 +126,11 @@ export function generateGraphviz(
             const nodeStr = renderNode(nodeId);
             if (nodeStr) lines.push(nodeStr);
         });
-        cluster.subClusters?.forEach((sub) => traverseCluster(clusters.get(sub)!));
+        cluster.subClusters?.forEach((sub) => traverseCluster(data.clusters.get(sub)!));
         lines.push('  }\n');
     }
 
-    clusters.forEach(traverseCluster);
+    if (groupByModules) data.clusters.forEach(traverseCluster);
 
     for (const id of data.nodes.keys()) {
         if (!renderedNodeIds.has(id)) {
@@ -119,26 +140,19 @@ export function generateGraphviz(
     }
 
     lines.push('\n  /* Relationships */');
-    for (const [sourceId, targets] of data.relations) {
-        if (!data.nodes.has(sourceId)) continue;
+    for (const relation of data.relations) {
+        const fromPortName = data.portMappings.find((pm) => pm.relation === relation)?.fromPortName ?? null;
+        const toPortName = data.portMappings.find((pm) => pm.relation === relation)?.toPortName ?? null;
 
-        targets.forEach((targetId) => {
-            if (!data.nodes.has(targetId)) return;
+        const from = transformId(relation.from, fromPortName);
+        const to = transformId(relation.to, toPortName);
 
-            const aEmbedded = embeddedNodesMap.epicToActionsMap.get(sourceId);
-            const bEmbedded = embeddedNodesMap.actionToEpicMap.get(sourceId);
-            if (aEmbedded?.some((v) => v.subId === targetId) || bEmbedded?.ownerId === targetId) return;
-
-            const from = transformId(sourceId, embeddedNodesMap);
-            const to = transformId(targetId, embeddedNodesMap);
-
-            lines.push(
-                `  ${from} -> ${to} [id="${transformEdgeId(sourceId, embeddedNodesMap)}__${transformEdgeId(
-                    targetId,
-                    embeddedNodesMap,
-                )}"];`,
-            );
-        });
+        lines.push(
+            `  ${from} -> ${to} [id="${transformEdgeId(relation.from, fromPortName)}__${transformEdgeId(
+                relation.to,
+                toPortName,
+            )}"];`,
+        );
     }
     lines.push('}');
     const dotString = lines.join('\n');
@@ -146,11 +160,9 @@ export function generateGraphviz(
     return {dotString, domIdToIdMap, idToDomIdMap};
 }
 
-function transformId(id: Id, embeddedMap: EmbeddedNodeMap): string {
-    const mapping = embeddedMap.actionToEpicMap.get(id);
-    return mapping ? `"${mapping.ownerId}":"${mapping.portName}"` : `"${id}"`;
+function transformId(id: Id, portName: PortName | null): string {
+    return portName ? `"${id}":${portName}` : `"${id}"`;
 }
-function transformEdgeId(id: Id, embeddedMap: EmbeddedNodeMap): string {
-    const mapping = embeddedMap.actionToEpicMap.get(id);
-    return mapping ? `${mapping.ownerId}_${mapping.portName}` : id;
+function transformEdgeId(id: Id, portName: PortName | null): string {
+    return portName ? `${id}_${portName}` : id;
 }

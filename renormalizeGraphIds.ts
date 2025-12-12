@@ -1,7 +1,10 @@
 import {createHash} from 'node:crypto';
 import {Id, Item} from './types';
 
-export function renormalizeGraphIds(input: {nodes: Map<Id, Item>; relations: Map<Id, Id[]>}): {
+export function renormalizeGraphIds(
+    DEVMode: boolean,
+    input: {nodes: Map<Id, Item>; relations: Map<Id, Id[]>},
+): {
     nodes: Map<Id, Item>;
     relations: Map<Id, Id[]>;
 } {
@@ -12,7 +15,9 @@ export function renormalizeGraphIds(input: {nodes: Map<Id, Item>; relations: Map
     const newRelations: Map<Id, Id[]> = new Map();
 
     for (const [oldId, node] of input.nodes) {
-        const baseHash = createHash('sha256').update(`${oldId}`).digest('base64url').slice(0, 5);
+        const baseHash = DEVMode
+            ? node.name
+            : createHash('sha256').update(`${oldId}`).digest('base64url').replace(/_|\-/g, '').slice(0, 5);
 
         let candidateId = baseHash as Id;
         let counter = 1;

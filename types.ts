@@ -40,7 +40,7 @@ export interface Cluster {
     nodes: Id[];
 }
 
-export type Graph = {
+export type GraphData = {
     nodes: Map<Id, Item>;
     relations: Map<Id, Id[]>;
 };

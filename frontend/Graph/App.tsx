@@ -1,78 +1,87 @@
-import {useEffect, useLayoutEffect, useMemo, useState} from 'react';
-import {Graph, Id} from '../../types';
-import {GraphViewer, LayoutDirection} from './GraphViewer';
+import {useEffect, useLayoutEffect, useState} from 'react';
+import 'react-contexify/ReactContexify.css';
+import {Id} from '../../types';
+import {Graph} from './Graph';
+import {ContextMenuCb, GraphViewer, LayoutDirection} from './GraphViewer';
 import {useIde} from './hooks/useIde';
 import {usePersistentState} from './hooks/usePersistentState';
 import {Sidebar} from './Sidebar/Sidebar';
-import {generateGraphClusters} from './utils/generateGraphClusters';
-import {getSubgraph} from './utils/getSubgraph';
 import {prettifyName} from './utils/prettifyName';
-import {removeNodeRecursive} from './utils/removeNodeRecursive';
-import {EnrichedGraph} from './types';
-import {enrichGraph} from './utils/enrichGraph';
+import {embedActionNodes} from './utils/analyzeEmbeddedNodes';
+import {Direction} from './types';
+import {SearchItem} from './Sidebar/Search/Search';
 
-export const App: React.FC<{data: EnrichedGraph}> = ({data: initialData}) => {
+type Removing = {id: Id; dir: Direction};
+type HistoryItem = {
+    removedIds: Removing[];
+    whiteListIds: Id[];
+    selectedId: Id | null;
+    focusId: Id | null;
+    layoutDirection: LayoutDirection;
+};
+
+export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [selectedId, setSelectedId] = useState<Id | null>(null);
-    const [removedIds, setRemovedIds] = usePersistentState<Id[]>({key: 'removedIds'}, []);
+    const [removedIds, setRemovedIds] = usePersistentState<Removing[]>({key: 'removedIds'}, []);
+    const [whiteListIds, setWhiteListIds] = useState<Id[]>([]);
     const [focusId, setFocusId] = usePersistentState<Id | null>({key: 'focusId'}, null);
     const [graphData, setGraphData] = useState(initialData);
-    const [editHistory, setEditHistory] = useState<{removedId: Id}[]>([]);
-    const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(graphData.graph);
+    const [editHistory, setEditHistory] = useState<HistoryItem[]>([]);
+    const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(graphData);
     const [layoutDirection, setLayoutDirection] = usePersistentState<LayoutDirection>({key: 'layoutDirection'}, 'LR');
+    const [groupByModules, setGroupByModules] = usePersistentState<boolean>({key: 'groupByModules'}, false);
 
     useLayoutEffect(() => {
-        let newGraph = initialData.graph;
-        for (const someId of removedIds) {
-            const node = initialData.graph.nodes.get(someId);
+        let newGraph = initialData.clone();
+        embedActionNodes(newGraph);
+
+        for (const {id: removedId, dir} of removedIds) {
+            const node = initialData.nodes.get(removedId);
             if (node) {
-                newGraph = removeNodeRecursive(newGraph, someId, (n) => n.location.module === node.location.module);
+                newGraph.removeNodeRecursive(
+                    removedId,
+                    dir,
+                    whiteListIds,
+                    undefined,
+                    // (n, id) => id === removedId || n.location.module === node.location.module,
+                );
             } else {
-                let newGraph2 = newGraph;
-                const cluster = initialData.clusters.get(someId);
+                const cluster = initialData.clusters.get(removedId);
                 if (cluster) {
                     for (const [id, node] of newGraph.nodes) {
                         if (
                             node.location.module === cluster.name ||
                             node.location.module.startsWith(cluster.name + '/')
                         ) {
-                            newGraph2 = removeNodeRecursive(
-                                newGraph2,
-                                id,
-                                (n) => n.location.module === node.location.module,
-                            );
+                            if (!whiteListIds.includes(id)) newGraph.removeNode(id);
                         }
                     }
                 }
-                newGraph = newGraph2;
             }
         }
-        if (focusId) {
-            newGraph = getSubgraph(newGraph, focusId);
+        if (focusId && newGraph.nodes.has(focusId)) {
+            newGraph.removeAllExceptSubgraph(focusId, whiteListIds);
         }
-        // console.log(enrichGraph(newGraph));
-        setGraphData(enrichGraph(newGraph));
-    }, [removedIds, focusId, initialData]);
-
-    useEffect(() => {
-        setSelectedId(null);
-    }, [graphData]);
+        console.log({newGraph});
+        setGraphData(newGraph);
+    }, [removedIds, whiteListIds, focusId, initialData]);
 
     useEffect(() => {
         const handleGraphKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Backspace') {
                 if (selectedId) {
-                    const newRemovedIds = [...removedIds, selectedId];
-                    setRemovedIds(newRemovedIds);
-                    setEditHistory([{removedId: selectedId}, ...editHistory]);
-                    setSelectedId(null);
+                    const dir = e.shiftKey ? ('backward' as const) : ('forward' as const);
+                    handleRemove(selectedId, dir);
                 }
             }
+            if (e.key === 'ArrowUp' && (e.ctrlKey || e.metaKey)) {
+                if (selectedId) handleReveal(selectedId, 'backward');
+            }
+            if (e.key === 'ArrowDown' && (e.ctrlKey || e.metaKey)) {
+                if (selectedId) handleReveal(selectedId, 'forward');
+            }
             if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
-                if (editHistory.length === 0) return;
-                const [lastHistoryItem, ...newHistoryEdit] = editHistory.slice().reverse();
-                const newRemovedIds = removedIds.filter((v) => v !== lastHistoryItem.removedId);
-                setRemovedIds(newRemovedIds);
-                setEditHistory(newHistoryEdit);
+                handleUndo();
             }
         };
         document.addEventListener('keydown', handleGraphKeyDown);
@@ -80,53 +89,147 @@ export const App: React.FC<{data: EnrichedGraph}> = ({data: initialData}) => {
     }, [selectedId, removedIds, editHistory, setRemovedIds]);
 
     const handleRestoreId = (idToRestore: string) => {
-        setRemovedIds(removedIds.filter((id) => id !== idToRestore));
+        setRemovedIds(removedIds.filter(({id}) => id !== idToRestore));
     };
     const handleRestoreAll = () => {
         setRemovedIds([]);
     };
 
-    function generateNodeName(id: Id | null, prettify = true) {
+    function generateNodeName(id: Id | null, prettify = true): Id | null {
         if (!id) return null;
-        const node = initialData.graph.nodes.get(id);
+        const node = initialData.nodes.get(id);
         if (node)
             return prettify
-                ? prettifyName(node.location.module + '/' + node.name)
-                : node.location.module + '/' + node.name;
+                ? (prettifyName(node.location.module + '/' + node.name) as Id)
+                : ((node.location.module + '/' + node.name) as Id);
+        return null;
     }
     function generateClusterName(id: Id, prettify = true) {
         const cluster = initialData.clusters.get(id);
         if (cluster) return prettify ? prettifyName(cluster.name) : cluster.name;
     }
 
-    const handleFocusNode = () => {
-        setFocusId(selectedId);
-    };
-    const handleClearFocusNode = () => {
-        setFocusId(null);
+    function saveUndoState() {
+        setEditHistory([
+            ...editHistory,
+            {
+                focusId,
+                layoutDirection,
+                removedIds,
+                selectedId,
+                whiteListIds,
+            },
+        ]);
+    }
+
+    function handleUndo() {
+        const lastItem = editHistory.at(-1);
+        if (lastItem) {
+            setFocusId(lastItem.focusId);
+            setLayoutDirection(lastItem.layoutDirection);
+            setRemovedIds(lastItem.removedIds);
+            setSelectedId(lastItem.selectedId);
+            setWhiteListIds(lastItem.whiteListIds);
+            setEditHistory([...editHistory.slice(0, -1)]);
+        }
+    }
+
+    const handleFocusNode = (nodeId: Id | null) => {
+        saveUndoState();
+
+        setFocusId(nodeId);
+        setWhiteListIds([]);
     };
 
-    const selectedNode = selectedId ? initialData.graph.nodes.get(selectedId) ?? null : null;
-    const embeddedNodes =
-        selectedId && selectedNode?.type === 'epic'
-            ? graphData.embeddedNodesMap.epicToActionsMap.get(selectedId)
-            : null;
-    const triggerAction = embeddedNodes?.find((v) => v.portName === 'trigger');
-    const successAction = embeddedNodes?.find((v) => v.portName === 'success');
-    const errorAction = embeddedNodes?.find((v) => v.portName === 'error');
+    function handleRemove(nodeId: Id, dir: Direction) {
+        saveUndoState();
+
+        const nodes = graphData.findRecursive(nodeId, dir);
+        const whiteListSet = new Set(whiteListIds);
+        const newRemovedIds = removedIds.slice();
+        for (const id of nodes) {
+            if (whiteListSet.has(id)) {
+                whiteListSet.delete(id);
+            }
+        }
+        newRemovedIds.push({id: nodeId, dir});
+        setWhiteListIds([...whiteListSet]);
+        setRemovedIds(newRemovedIds);
+        setSelectedId(null);
+    }
+
+    function handleReveal(nodeId: Id, dir: Direction) {
+        saveUndoState();
+
+        const sources = dir === 'backward' ? initialData.findParents(nodeId) : initialData.findChildren(nodeId);
+        const set = new Set([...whiteListIds, ...sources.map((v) => v.from)]);
+        setWhiteListIds([...set]);
+    }
+
+    const selectedNode = selectedId ? initialData.nodes.get(selectedId) ?? null : null;
+    // const triggerActionPM =
+    //     selectedId &&
+    //     graphData.reverseRelationsMap
+    //         .get(selectedId)
+    //         ?.find((v) => selectedId + ':trigger' === graphData.getRedirectedNodeId(v.from));
+    // const successActionPM =
+    //     selectedId &&
+    //     graphData.relationsMap
+    //         .get(selectedId)
+    //         ?.find((v) => selectedId + ':success' === graphData.getRedirectedNodeId(v.to));
+    // const errorActionPM =
+    //     selectedId &&
+    //     graphData.relationsMap
+    //         .get(selectedId)
+    //         ?.find((v) => selectedId + ':error' === graphData.getRedirectedNodeId(v.to));
+
+    const handleContextMenuOpen: ContextMenuCb = (id: Id) => {
+        return [
+            {
+                label: 'Focus subtree',
+                onClick: () => {
+                    setFocusId(id);
+                },
+            },
+            {
+                label: 'Reveal backward',
+                onClick: () => {
+                    handleReveal(id, 'backward');
+                },
+            },
+            {
+                label: 'Reveal forward',
+                onClick: () => {
+                    handleReveal(id, 'forward');
+                },
+            },
+            {
+                label: 'Delete backward',
+                onClick: () => {
+                    handleRemove(id, 'backward');
+                },
+            },
+            {
+                label: 'Delete forward',
+                onClick: () => {
+                    handleRemove(id, 'forward');
+                },
+            },
+        ];
+    };
 
     return (
         <div style={{width: '100%', height: '100%'}}>
             <div onClick={() => setSelectedId(null)}>
                 <GraphViewer
-                    graph={graphData.graph}
-                    embeddedNodesMap={graphData.embeddedNodesMap}
-                    clusters={graphData.clusters}
+                    graph={graphData}
                     onSelect={setSelectedId}
                     onDoubleClick={handleOpenFileInIde}
                     selectedId={selectedId}
                     layoutDirection={layoutDirection}
+                    groupByModules={groupByModules}
                     mainId={focusId}
+                    onContextMenuOpen={handleContextMenuOpen}
                 />
             </div>
             <Sidebar
@@ -139,42 +242,53 @@ export const App: React.FC<{data: EnrichedGraph}> = ({data: initialData}) => {
                           ).split('/')
                         : null
                 }
-                focusNode={generateNodeName(focusId, true) ?? null}
-                removedNodes={removedIds.map((id) => ({
-                    id,
-                    name: generateNodeName(id, true) ?? generateClusterName(id, true) ?? id,
-                }))}
+                focusNode={focusId}
+                removedNodes={removedIds
+                    .map(({id, dir}) => ({
+                        id,
+                        dir,
+                        name: generateNodeName(id, true) ?? generateClusterName(id, true) ?? id,
+                    }))
+                    .reverse()}
                 nodeDetails={[
-                    selectedNode?.type === 'epic' && selectedNode.apiCall.requests.length > 0 ? (
-                        <div>
-                            {selectedNode.apiCall.requests[0].type} {selectedNode.apiCall.requests[0].url}
-                        </div>
-                    ) : null,
-                    triggerAction ? (
-                        <div>
-                            Trigger Action 📍<div>{generateNodeName(triggerAction.subId, true)}</div>
-                        </div>
-                    ) : null,
-                    successAction ? (
-                        <div>
-                            Success Action ✔ <div>{generateNodeName(successAction.subId, true)}</div>
-                        </div>
-                    ) : null,
-                    errorAction ? (
-                        <div>
-                            Error Action ✖ <div>{generateNodeName(errorAction.subId, true)}</div>
-                        </div>
-                    ) : null,
+                    // selectedNode?.type === 'epic' && selectedNode.apiCall.requests.length > 0 ? (
+                    //     <div>
+                    //         {selectedNode.apiCall.requests[0].type} {selectedNode.apiCall.requests[0].url}
+                    //     </div>
+                    // ) : null,
+                    // triggerActionPM ? (
+                    //     <div>
+                    //         Trigger Action 📍<div>{generateNodeName(triggerActionPM.from, true)}</div>
+                    //     </div>
+                    // ) : null,
+                    // successActionPM ? (
+                    //     <div>
+                    //         Success Action ✔ <div>{generateNodeName(successActionPM.to, true)}</div>
+                    //     </div>
+                    // ) : null,
+                    // errorActionPM ? (
+                    //     <div>
+                    //         Error Action ✖ <div>{generateNodeName(errorActionPM.to, true)}</div>
+                    //     </div>
+                    // ) : null,
                 ].filter((v) => v !== null)}
+                searchItems={[...initialData.nodes.entries()].map<SearchItem>(([id, node]) => ({
+                    fileName: node.location.url,
+                    module: node.location.module,
+                    name: node.name,
+                    id,
+                }))}
+                onFocusNode={handleFocusNode}
                 layoutDirection={layoutDirection}
                 ideOptions={ideOptions}
                 selectedIde={selectedIde}
                 onIdeChange={setSelectedIde}
                 onLayoutChange={setLayoutDirection}
-                onFocusSubtree={handleFocusNode}
-                onClearFocus={handleClearFocusNode}
+                onFocusSubtree={() => selectedId && handleFocusNode(selectedId)}
                 onRestoreAll={handleRestoreAll}
                 onRestoreNode={handleRestoreId}
+                groupByModules={groupByModules}
+                onGroupByModulesChange={setGroupByModules}
             />
         </div>
     );

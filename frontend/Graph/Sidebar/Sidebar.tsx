@@ -4,32 +4,41 @@ import {LayoutDirection} from '../GraphViewer';
 import {IdeItem, IdeValue} from '../hooks/useIde';
 import {Id} from '../../../types';
 import {Icons} from './Icons';
+import {Direction} from '../types';
+import {Search, SearchItem} from './Search/Search';
 
 export const Sidebar: React.FC<{
     path: string[] | null;
-    focusNode: string | null;
-    removedNodes: {id: Id; name: string}[];
+    focusNode: Id | null;
+    removedNodes: {id: Id; name: string; dir: Direction}[];
     nodeDetails: JSX.Element[];
     layoutDirection: LayoutDirection;
+    groupByModules: boolean;
     ideOptions: readonly IdeItem[];
     selectedIde: IdeValue;
+    searchItems: SearchItem[];
+
+    onFocusNode: (node: Id | null) => void;
     onIdeChange: (ide: IdeValue) => void;
     onFocusSubtree: () => void;
-    onClearFocus: () => void;
     onRestoreAll: () => void;
     onRestoreNode: (node: Id) => void;
     onLayoutChange: (layoutDirection: LayoutDirection) => void;
+    onGroupByModulesChange: (groupByModules: boolean) => void;
 }> = ({
     path,
     nodeDetails,
     focusNode,
     removedNodes,
     layoutDirection,
+    groupByModules,
     ideOptions,
     selectedIde,
+    searchItems,
+    onGroupByModulesChange,
+    onFocusNode,
     onIdeChange,
     onFocusSubtree,
-    onClearFocus,
     onRestoreAll,
     onRestoreNode,
     onLayoutChange,
@@ -63,18 +72,10 @@ export const Sidebar: React.FC<{
                 </div>
             )}
 
-            {/* --- Focus Context --- */}
-            {focusNode && (
-                <div className={styles.focusCard}>
-                    <div className={styles.cardLabel}>FOCUS</div>
-                    <div className={styles.cardContent}>
-                        <span className={styles.focusValue}>{focusNode}</span>
-                        <button className={styles.clearBtn} onClick={onClearFocus} aria-label="Clear focus">
-                            <Icons.Close />
-                        </button>
-                    </div>
-                </div>
-            )}
+            <div className={styles.section}>
+                <div className={styles.sectionTitle}>Focus</div>
+                <Search selectedId={focusNode} items={searchItems} onSelect={onFocusNode} />
+            </div>
 
             {/* --- Removed Nodes List --- */}
             {removedNodes.length > 0 && (
@@ -91,7 +92,9 @@ export const Sidebar: React.FC<{
                     <ul className={styles.nodeList}>
                         {removedNodes.map((node, index) => (
                             <li key={index} className={styles.nodeItem}>
-                                <span className={styles.nodeName}>{node.name}</span>
+                                <span className={styles.nodeName}>
+                                    {node.dir === 'forward' ? '↓' : '↑'} {node.name}
+                                </span>
                                 <button
                                     className={styles.restoreBtn}
                                     onClick={() => onRestoreNode(node.id)}
@@ -124,7 +127,6 @@ export const Sidebar: React.FC<{
                             </span>
                         </div>
                     </div>
-
                     <div className={styles.controlGroup}>
                         <label>Open in IDE</label>
                         <div className={styles.selectWrapper}>
@@ -140,6 +142,16 @@ export const Sidebar: React.FC<{
                             </span>
                         </div>
                     </div>
+                </div>
+                <div className={styles.controlGroup}>
+                    <label style={{display: 'flex', alignItems: 'center', gap: 5}}>
+                        <input
+                            type="checkbox"
+                            checked={groupByModules}
+                            onChange={(e) => onGroupByModulesChange(e.target.checked)}
+                        />{' '}
+                        Group by modules
+                    </label>
                 </div>
             </div>
             {/* --- Help / Shortcuts --- */}
@@ -178,7 +190,7 @@ export const Sidebar: React.FC<{
                     <kbd className={styles.kbd}>Dbl Click</kbd>
                 </div>
                 <div className={styles.shortcutRow}>
-                    <span>Restore File</span>
+                    <span>Undo</span>
                     <div className={styles.keysGroup}>
                         <kbd className={styles.kbd}>Cmd</kbd>
                         <span className={styles.plus}>+</span>

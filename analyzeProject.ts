@@ -5,7 +5,7 @@ import {renormalizeGraphIds} from './renormalizeGraphIds';
 import {Action, ApiCall, ApiRequest, Component, Epic, Id, Item} from './types';
 import {getLocation, getNodeKey, getUrlFromArgument} from './utils/ast';
 import {compressFileIntoUrlSafeString} from './utils/compressFile';
-import {readdirSync} from 'node:fs';
+import {readdirSync, writeFileSync} from 'node:fs';
 
 export const CONFIG = {
     apiClients: {
@@ -94,25 +94,26 @@ class ReduxProjectAnalyzer {
         this.collectActions();
         this.collectEpics();
         this.collectComponents();
-        console.log(this.components);
+        this.analyzeComponentUsage();
 
         const allNodes = new Map<Id, Item>([
             ...this.actions,
             ...this.epics,
             ...[...this.components.entries()].map(([k, v]) => [k, v.data] as const),
         ]);
-        const result = renormalizeGraphIds({nodes: allNodes, relations: this.relations});
+        const result = renormalizeGraphIds(DEV_MODE, {nodes: allNodes, relations: this.relations});
 
         const output = {
             nodes: Object.fromEntries(result.nodes),
             relations: Object.fromEntries(result.relations),
         };
-        // open('http://localhost:5174/#payload=' + compressFileIntoUrlSafeString(JSON.stringify(output)));
-        // fs.writeFileSync('./data.json', JSON.stringify(output, null, 2));
-        // open(
-        //     'https://cevek.github.io/codebase-inspector/#payload=' +
-        //         compressFileIntoUrlSafeString(JSON.stringify(output)),
-        // );
+        if (DEV_MODE) open('http://localhost:5174/#payload=' + compressFileIntoUrlSafeString(JSON.stringify(output)));
+        if (DEV_MODE) writeFileSync('./data.json', JSON.stringify(output, null, 2));
+        if (!DEV_MODE)
+            open(
+                'https://cevek.github.io/codebase-inspector/#payload=' +
+                    compressFileIntoUrlSafeString(JSON.stringify(output)),
+            );
         console.log('Analysis complete');
     }
 
@@ -232,6 +233,9 @@ class ReduxProjectAnalyzer {
         const analyzer = new EpicBodyAnalyzer(this.folder, realBody, this.checker, this.actions, sourceFile);
         const {subscriptions, dispatches, apiCall} = analyzer.analyze();
 
+        // if (name === 'addNotificationOnDataProvidersErrorEpic')
+        // console.log(name, {subscriptions, dispatches});
+
         subscriptions.forEach((subId) => this.addRelation(subId, epicId));
         dispatches.forEach((dispatchId) => this.addRelation(epicId, dispatchId));
 
@@ -243,9 +247,77 @@ class ReduxProjectAnalyzer {
         });
     }
 
+    private analyzeComponentUsage() {
+        for (const [componentId, {node: componentNode}] of this.components) {
+            let body: ts.Node | undefined;
+            const parent = componentNode.parent;
+
+            if (ts.isVariableDeclaration(parent) && parent.initializer) {
+                body = parent.initializer;
+            } else if (ts.isFunctionDeclaration(parent)) {
+                body = parent.body;
+            }
+
+            if (!body) continue;
+
+            const visit = (node: ts.Node) => {
+                if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+                    const tagName = node.tagName;
+                    if (ts.isIdentifier(tagName)) {
+                        this.checkUsage(tagName, componentId, 'component');
+                    } else if (ts.isPropertyAccessExpression(tagName)) {
+                        this.checkUsage(tagName.name, componentId, 'component');
+                    }
+                }
+
+                if (ts.isIdentifier(node)) {
+                    this.checkUsage(node, componentId, 'action');
+                }
+
+                ts.forEachChild(node, visit);
+            };
+
+            ts.forEachChild(body, visit);
+        }
+    }
+
+    private checkUsage(identifier: ts.Identifier | ts.MemberName, sourceId: Id, targetType: 'component' | 'action') {
+        let symbol = this.checker.getSymbolAtLocation(identifier);
+        if (!symbol) return;
+
+        if (symbol.flags & ts.SymbolFlags.Alias) {
+            symbol = this.checker.getAliasedSymbol(symbol);
+        }
+
+        const declarations = symbol.getDeclarations();
+        if (!declarations) return;
+
+        for (const declaration of declarations) {
+            let keyNode: ts.Node = declaration;
+            if ((ts.isVariableDeclaration(declaration) || ts.isFunctionDeclaration(declaration)) && declaration.name) {
+                keyNode = declaration.name;
+            }
+
+            const key = getNodeKey(keyNode);
+
+            if (targetType === 'component' && this.components.has(key)) {
+                if (key !== sourceId) {
+                    this.addRelation(sourceId, key);
+                }
+                return;
+            }
+
+            if (targetType === 'action' && this.actions.has(key)) {
+                this.addRelation(sourceId, key);
+                return;
+            }
+        }
+    }
+
     private addRelation(from: Id, to: Id) {
-        const existing = this.relations.get(from) ?? [];
-        this.relations.set(from, [...existing, to]);
+        const existing = new Set(this.relations.get(from) ?? []);
+        existing.add(to);
+        this.relations.set(from, [...existing]);
     }
 }
 
@@ -382,13 +454,17 @@ class EpicBodyAnalyzer {
     }
 }
 
+const DEV_MODE = true;
 try {
     // for (const app of readdirSync('/Users/cody/Dev/backoffice/apps/')) {
-    const app = 'scheduler';
-    const analyzer = new ReduxProjectAnalyzer('/Users/cody/Dev/backoffice/apps/' + app);
-    // const analyzer = new ReduxProjectAnalyzer('./frontend');
-    analyzer.analyze();
-    // }
+    if (DEV_MODE) {
+        const app = 'scheduler';
+        const analyzer = new ReduxProjectAnalyzer('/Users/cody/Dev/backoffice/apps/' + app);
+        analyzer.analyze();
+    } else {
+        const analyzer = new ReduxProjectAnalyzer('./');
+        analyzer.analyze();
+    }
 } catch (e) {
     console.error('Error:', e);
 }

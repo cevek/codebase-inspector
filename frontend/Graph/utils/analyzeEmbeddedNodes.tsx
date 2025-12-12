@@ -1,44 +1,56 @@
-import {Graph, Id} from '../../../types';
-import {EmbeddedNodeMap, PortMapping} from '../types';
+import {Graph} from '../Graph';
 
-export function analyzeEmbeddedNodes(graph: Graph): EmbeddedNodeMap {
-    const map: EmbeddedNodeMap = {
-        actionToEpicMap: new Map(),
-        epicToActionsMap: new Map(),
-    };
-
+export function embedActionNodes(graph: Graph) {
+    // return;
     for (const [id, node] of graph.nodes) {
         if (node.type === 'epic') {
-            const actions = graph.relations.get(id) ?? [];
-            for (const actionId of actions) {
+            const epicId = id;
+            const actionRelations = graph.relationsMap.get(epicId) ?? [];
+            for (const epicActionRelation of actionRelations) {
+                const actionId = epicActionRelation.to;
                 const action = graph.nodes.get(actionId);
                 if (!action) continue;
 
+                const actionRelations = graph.relationsMap.get(actionId) ?? [];
                 if (action.name.includes('Success')) {
-                    addActionToEpicMap(actionId, id, 'success');
+                    graph.removeRelation(epicId, actionId);
+                    for (const actionRelation of actionRelations) {
+                        const nextId = actionRelation.to;
+                        graph.removeRelation(actionId, nextId);
+                        graph.addRelation(epicId, nextId);
+                        graph.addFromPortForRelation(epicId, 'success', nextId);
+                    }
+                    graph.removeNode(actionId);
                 } else if (action.name.includes('Error')) {
-                    addActionToEpicMap(actionId, id, 'error');
+                    graph.removeRelation(epicId, actionId);
+                    for (const actionRelation of actionRelations) {
+                        const nextId = actionRelation.to;
+                        graph.removeRelation(actionId, nextId);
+                        graph.addRelation(epicId, nextId);
+                        graph.addFromPortForRelation(epicId, 'error', nextId);
+                    }
+                    graph.removeNode(actionId);
                 }
             }
         } else if (node.type === 'action') {
-            const epicRelations = graph.relations.get(id);
-            if (!epicRelations || epicRelations.length !== 1) continue;
-            const epicId = epicRelations[0];
+            const actionId = id;
+            const actionEpicRelations = graph.relationsMap.get(actionId);
+            if (!actionEpicRelations || actionEpicRelations.length !== 1) continue;
+            const epicId = actionEpicRelations[0].to;
             const epicNode = graph.nodes.get(epicId);
             if (!epicNode || epicNode.type !== 'epic') continue;
             if (epicNode.location.module !== node.location.module || epicNode.location.layer !== node.location.layer)
                 continue;
-            addActionToEpicMap(id, epicId, 'trigger');
+            if (actionId.match(/:|Success|Error/)) continue;
+            graph.removeRelation(actionId, epicId);
+            const actionRelations = graph.reverseRelationsMap.get(actionId) ?? [];
+            for (const actionRelation of actionRelations) {
+                const prevId = actionRelation.from;
+                graph.removeRelation(prevId, actionId);
+                graph.addRelation(prevId, epicId);
+                graph.addToPortForRelation(prevId, epicId, 'trigger');
+            }
+            graph.removeNode(actionId);
         }
-    }
-    return map;
-    function addActionToEpicMap(actionId: Id, epicId: Id, portName: PortMapping['portName']) {
-        map.actionToEpicMap.set(actionId, {ownerId: epicId, portName});
-        let epic = map.epicToActionsMap.get(epicId);
-        if (!epic) {
-            epic = [];
-            map.epicToActionsMap.set(epicId, epic);
-        }
-        epic.push({subId: actionId, portName});
     }
 }

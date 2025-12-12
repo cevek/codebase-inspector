@@ -1,4 +1,5 @@
-import {Graph, Id} from '../../../types';
+import {Id} from '../../../types';
+import {Graph} from '../Graph';
 import {usePersistentState} from './usePersistentState';
 
 const ideOptions = [
