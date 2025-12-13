@@ -1,11 +1,12 @@
 import {useCallback} from 'react';
 import {Id} from '../../../types';
 import {ContextMenuCb} from '../GraphViewer';
+import {Direction} from '../types';
 
 interface MenuActions {
     focusNode: (id: Id) => void;
-    revealNode: (id: Id, dir: 'backward' | 'forward') => void;
-    removeNode: (id: Id, dir: 'backward' | 'forward') => void;
+    revealNode: (id: Id, dir: Direction) => void;
+    removeNode: (id: Id, dir: Direction) => void;
 }
 
 export const useGraphContextMenu = (actions: MenuActions): ContextMenuCb => {

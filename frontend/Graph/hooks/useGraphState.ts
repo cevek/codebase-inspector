@@ -133,10 +133,6 @@ export const useGraphState = (initialGraph: Graph, initialStateOverrides?: Parti
         restoreAll: useCallback(() => {
             commit(() => ({removedIds: []}));
         }, [commit]),
-
-        batchUpdate: useCallback((newState: Partial<GraphViewState>) => {
-            setState((prev) => ({...prev, ...newState}));
-        }, []),
     };
 
     return {state, actions, history: {undo, redo, canUndo: history.length > 0, canRedo: future.length > 0}};
