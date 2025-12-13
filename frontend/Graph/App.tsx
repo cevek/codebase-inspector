@@ -39,7 +39,10 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [whiteListIds, setWhiteListIds] = useState<Id[]>([]);
     const [focusId, setFocusId] = usePersistentState<Id | null>({key: 'focusId'}, null);
     const [graphData, setGraphData] = useState(initialData);
+
     const [editHistory, setEditHistory] = useState<HistoryItem[]>([]);
+    const [redoHistory, setRedoHistory] = useState<HistoryItem[]>([]);
+
     const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(graphData);
     const [layoutDirection, setLayoutDirection] = usePersistentState<LayoutDirection>({key: 'layoutDirection'}, 'LR');
     const [groupByModules, setGroupByModules] = usePersistentState<boolean>({key: 'groupByModules'}, false);
@@ -86,8 +89,53 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         setGraphData(newGraph);
     }, [removedIds, whiteListIds, focusId, initialData]);
 
+    const getCurrentSnapshot = (): HistoryItem => ({
+        focusId,
+        layoutDirection,
+        removedIds,
+        selectedId,
+        whiteListIds,
+    });
+
+    function saveUndoState() {
+        setEditHistory((prev) => [...prev, getCurrentSnapshot()]);
+        setRedoHistory([]);
+    }
+
+    function handleUndo() {
+        const lastItem = editHistory.at(-1);
+        if (lastItem) {
+            setRedoHistory((prev) => [...prev, getCurrentSnapshot()]);
+
+            setFocusId(lastItem.focusId);
+            setLayoutDirection(lastItem.layoutDirection);
+            setRemovedIds(lastItem.removedIds);
+            setSelectedId(lastItem.selectedId);
+            setWhiteListIds(lastItem.whiteListIds);
+
+            setEditHistory((prev) => prev.slice(0, -1));
+        }
+    }
+
+    function handleRedo() {
+        const nextItem = redoHistory.at(-1);
+        if (nextItem) {
+            setEditHistory((prev) => [...prev, getCurrentSnapshot()]);
+
+            setFocusId(nextItem.focusId);
+            setLayoutDirection(nextItem.layoutDirection);
+            setRemovedIds(nextItem.removedIds);
+            setSelectedId(nextItem.selectedId);
+            setWhiteListIds(nextItem.whiteListIds);
+
+            setRedoHistory((prev) => prev.slice(0, -1));
+        }
+    }
+
     useEffect(() => {
         const handleGraphKeyDown = (e: KeyboardEvent) => {
+            if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+
             if (e.key === 'Backspace') {
                 if (selectedId) {
                     const dir = e.shiftKey ? ('backward' as const) : ('forward' as const);
@@ -118,13 +166,25 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                     else handleArrows(selectedId, 'right');
                 }
             }
-            if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
-                handleUndo();
+
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+                if (e.shiftKey) {
+                    handleRedo();
+                } else {
+                    handleUndo();
+                }
+                e.preventDefault();
+            }
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+                handleRedo();
+                e.preventDefault();
             }
         };
         document.addEventListener('keydown', handleGraphKeyDown);
         return () => document.removeEventListener('keydown', handleGraphKeyDown);
-    }, [selectedId, nodeRects, removedIds, editHistory, setRemovedIds]);
+    }, [selectedId, nodeRects, removedIds, editHistory, redoHistory, focusId, whiteListIds, layoutDirection]);
+    // ^ Added dependencies needed for current state snapshotting inside handlers if closure is stale,
+    // though setState functional updates mitigate most issues.
 
     useEffect(() => {
         const handleMouseClick = () => {
@@ -135,9 +195,11 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     }, []);
 
     const handleRestoreId = (idToRestore: string) => {
+        saveUndoState(); // Optional: Add this if you want Restore to be undoable
         setRemovedIds(removedIds.filter(({id}) => id !== idToRestore));
     };
     const handleRestoreAll = () => {
+        saveUndoState(); // Optional: Add this if you want Restore All to be undoable
         setRemovedIds([]);
     };
 
@@ -289,31 +351,6 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         if (cluster) return prettify ? prettifyName(cluster.name) : cluster.name;
     }
 
-    function saveUndoState() {
-        setEditHistory([
-            ...editHistory,
-            {
-                focusId,
-                layoutDirection,
-                removedIds,
-                selectedId,
-                whiteListIds,
-            },
-        ]);
-    }
-
-    function handleUndo() {
-        const lastItem = editHistory.at(-1);
-        if (lastItem) {
-            setFocusId(lastItem.focusId);
-            setLayoutDirection(lastItem.layoutDirection);
-            setRemovedIds(lastItem.removedIds);
-            setSelectedId(lastItem.selectedId);
-            setWhiteListIds(lastItem.whiteListIds);
-            setEditHistory([...editHistory.slice(0, -1)]);
-        }
-    }
-
     const handleFocusNode = (nodeId: Id | null) => {
         saveUndoState();
 
@@ -349,21 +386,6 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     }
 
     const selectedNode = selectedId ? initialData.nodes.get(selectedId) ?? null : null;
-    // const triggerActionPM =
-    //     selectedId &&
-    //     graphData.reverseRelationsMap
-    //         .get(selectedId)
-    //         ?.find((v) => selectedId + ':trigger' === graphData.getRedirectedNodeId(v.from));
-    // const successActionPM =
-    //     selectedId &&
-    //     graphData.relationsMap
-    //         .get(selectedId)
-    //         ?.find((v) => selectedId + ':success' === graphData.getRedirectedNodeId(v.to));
-    // const errorActionPM =
-    //     selectedId &&
-    //     graphData.relationsMap
-    //         .get(selectedId)
-    //         ?.find((v) => selectedId + ':error' === graphData.getRedirectedNodeId(v.to));
 
     const handleContextMenuOpen: ContextMenuCb = (id: Id) => {
         return [
@@ -433,28 +455,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                         name: generateNodeName(id, true) ?? generateClusterName(id, true) ?? id,
                     }))
                     .reverse()}
-                nodeDetails={[
-                    // selectedNode?.type === 'epic' && selectedNode.apiCall.requests.length > 0 ? (
-                    //     <div>
-                    //         {selectedNode.apiCall.requests[0].type} {selectedNode.apiCall.requests[0].url}
-                    //     </div>
-                    // ) : null,
-                    // triggerActionPM ? (
-                    //     <div>
-                    //         Trigger Action 📍<div>{generateNodeName(triggerActionPM.from, true)}</div>
-                    //     </div>
-                    // ) : null,
-                    // successActionPM ? (
-                    //     <div>
-                    //         Success Action ✔ <div>{generateNodeName(successActionPM.to, true)}</div>
-                    //     </div>
-                    // ) : null,
-                    // errorActionPM ? (
-                    //     <div>
-                    //         Error Action ✖ <div>{generateNodeName(errorActionPM.to, true)}</div>
-                    //     </div>
-                    // ) : null,
-                ].filter((v) => v !== null)}
+                nodeDetails={[].filter((v) => v !== null)}
                 searchItems={[...initialData.nodes.entries()].map<SearchItem>(([id, node]) => ({
                     fileName: node.location.url,
                     module: node.location.module,
