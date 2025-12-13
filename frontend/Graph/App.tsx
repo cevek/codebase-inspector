@@ -143,7 +143,6 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     } | null>(null);
 
     useLayoutEffect(() => {
-        // ... (весь ваш код useLayoutEffect без изменений)
         let newGraph = initialData.clone();
         embedActionNodes(newGraph);
 
@@ -451,9 +450,20 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
 
     function handleRemove(nodeId: Id, dir: Direction) {
         saveUndoState();
-
-        const nodes = graphData.findRecursive(nodeId, dir);
         const whiteListSet = new Set(whiteListIds);
+
+        let nodes: Set<Id> = new Set();
+        const cluster = graphData.clusters.get(nodeId);
+        if (cluster) {
+            nodes = new Set(cluster.nodes);
+            for (const id of nodes) {
+                if (whiteListSet.has(id)) {
+                    whiteListSet.delete(id);
+                }
+            }
+        } else {
+            nodes = graphData.findRecursive(nodeId, dir);
+        }
         const newRemovedIds = removedIds.slice();
         for (const id of nodes) {
             if (whiteListSet.has(id)) {
