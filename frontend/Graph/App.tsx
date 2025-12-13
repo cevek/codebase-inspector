@@ -1,15 +1,15 @@
-import {useEffect, useLayoutEffect, useState} from 'react';
+import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import 'react-contexify/ReactContexify.css';
 import {Id} from '../../types';
 import {Graph} from './Graph';
-import {ContextMenuCb, GraphViewer, LayoutDirection} from './GraphViewer';
+import {ContextMenuCb, GraphViewer, LayoutDirection, Rect} from './GraphViewer';
 import {useIde} from './hooks/useIde';
 import {usePersistentState} from './hooks/usePersistentState';
-import {Sidebar} from './Sidebar/Sidebar';
-import {prettifyName} from './utils/prettifyName';
-import {embedActionNodes} from './utils/analyzeEmbeddedNodes';
-import {Direction} from './types';
 import {SearchItem} from './Sidebar/Search/Search';
+import {Sidebar} from './Sidebar/Sidebar';
+import {ArrowDirection, Direction} from './types';
+import {embedActionNodes} from './utils/analyzeEmbeddedNodes';
+import {prettifyName} from './utils/prettifyName';
 
 type Removing = {id: Id; dir: Direction};
 type HistoryItem = {
@@ -18,6 +18,19 @@ type HistoryItem = {
     selectedId: Id | null;
     focusId: Id | null;
     layoutDirection: LayoutDirection;
+};
+
+const getOppositeDirection = (dir: ArrowDirection): ArrowDirection => {
+    switch (dir) {
+        case 'left':
+            return 'right';
+        case 'right':
+            return 'left';
+        case 'up':
+            return 'down';
+        case 'down':
+            return 'up';
+    }
 };
 
 export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
@@ -30,6 +43,13 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(graphData);
     const [layoutDirection, setLayoutDirection] = usePersistentState<LayoutDirection>({key: 'layoutDirection'}, 'LR');
     const [groupByModules, setGroupByModules] = usePersistentState<boolean>({key: 'groupByModules'}, false);
+    const [nodeRects, setNodeRects] = useState<Rect[]>([]);
+
+    const lastKeyboardMove = useRef<{
+        fromId: Id;
+        toId: Id;
+        direction: ArrowDirection;
+    } | null>(null);
 
     useLayoutEffect(() => {
         let newGraph = initialData.clone();
@@ -74,11 +94,29 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                     handleRemove(selectedId, dir);
                 }
             }
-            if (e.key === 'ArrowUp' && (e.ctrlKey || e.metaKey)) {
-                if (selectedId) handleReveal(selectedId, 'backward');
+            if (e.key === 'ArrowUp') {
+                if (selectedId) {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey) handleReveal(selectedId, 'backward');
+                    else handleArrows(selectedId, 'up');
+                }
             }
-            if (e.key === 'ArrowDown' && (e.ctrlKey || e.metaKey)) {
-                if (selectedId) handleReveal(selectedId, 'forward');
+            if (e.key === 'ArrowDown') {
+                if (selectedId) {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey) handleReveal(selectedId, 'forward');
+                    else handleArrows(selectedId, 'down');
+                }
+            }
+            if (e.key === 'ArrowLeft') {
+                if (selectedId) {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey) handleReveal(selectedId, 'backward');
+                    else handleArrows(selectedId, 'left');
+                }
+            }
+            if (e.key === 'ArrowRight') {
+                if (selectedId) {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey) handleReveal(selectedId, 'forward');
+                    else handleArrows(selectedId, 'right');
+                }
             }
             if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
                 handleUndo();
@@ -86,13 +124,155 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         };
         document.addEventListener('keydown', handleGraphKeyDown);
         return () => document.removeEventListener('keydown', handleGraphKeyDown);
-    }, [selectedId, removedIds, editHistory, setRemovedIds]);
+    }, [selectedId, nodeRects, removedIds, editHistory, setRemovedIds]);
+
+    useEffect(() => {
+        const handleMouseClick = () => {
+            lastKeyboardMove.current = null;
+        };
+        document.addEventListener('mousedown', handleMouseClick);
+        return () => document.removeEventListener('mousedown', handleMouseClick);
+    }, []);
 
     const handleRestoreId = (idToRestore: string) => {
         setRemovedIds(removedIds.filter(({id}) => id !== idToRestore));
     };
     const handleRestoreAll = () => {
         setRemovedIds([]);
+    };
+
+    const findNextNode = (currentId: Id, direction: ArrowDirection): Id | undefined => {
+        const currentRect = nodeRects.find((r) => r.id === currentId);
+        if (!currentRect) return;
+
+        if (lastKeyboardMove.current) {
+            if (
+                lastKeyboardMove.current.toId === currentId &&
+                direction === getOppositeDirection(lastKeyboardMove.current.direction)
+            ) {
+                const sourceId = lastKeyboardMove.current.fromId;
+                const sourceExists = nodeRects.some((r) => r.id === sourceId);
+
+                if (sourceExists) {
+                    lastKeyboardMove.current = {
+                        fromId: currentId,
+                        toId: sourceId,
+                        direction: direction,
+                    };
+                    return sourceId;
+                }
+            }
+        }
+
+        // console.log({currentRect, nodeRects});
+        let bestCandidate: Rect | null = null;
+        let minScore = Infinity;
+
+        nodeRects.forEach((cand) => {
+            if (cand.id === currentId) return;
+
+            let distMain = 0;
+            let isOverlapping = false;
+            let distCross = 0;
+            let distCenter = 0;
+
+            let isValid = false;
+
+            switch (direction) {
+                case 'right':
+                    if (cand.left >= currentRect.right) {
+                        isValid = true;
+                        distMain = cand.left - currentRect.right;
+                        const overlapY =
+                            Math.min(currentRect.bottom, cand.bottom) - Math.max(currentRect.top, cand.top);
+                        isOverlapping = overlapY > 0;
+                        if (!isOverlapping) {
+                            distCross = Math.max(
+                                0,
+                                Math.max(currentRect.top, cand.top) - Math.min(currentRect.bottom, cand.bottom),
+                            );
+                        }
+                        distCenter = Math.abs(cand.cy - currentRect.cy);
+                    }
+                    break;
+
+                case 'left':
+                    if (cand.right <= currentRect.left) {
+                        isValid = true;
+                        distMain = currentRect.left - cand.right;
+                        const overlapY =
+                            Math.min(currentRect.bottom, cand.bottom) - Math.max(currentRect.top, cand.top);
+                        isOverlapping = overlapY > 0;
+                        if (!isOverlapping) {
+                            distCross = Math.max(
+                                0,
+                                Math.max(currentRect.top, cand.top) - Math.min(currentRect.bottom, cand.bottom),
+                            );
+                        }
+                        distCenter = Math.abs(cand.cy - currentRect.cy);
+                    }
+                    break;
+
+                case 'down':
+                    if (cand.top >= currentRect.bottom) {
+                        isValid = true;
+                        distMain = cand.top - currentRect.bottom;
+                        const overlapX =
+                            Math.min(currentRect.right, cand.right) - Math.max(currentRect.left, cand.left);
+                        isOverlapping = overlapX > 0;
+                        if (!isOverlapping) {
+                            distCross = Math.max(
+                                0,
+                                Math.max(currentRect.left, cand.left) - Math.min(currentRect.right, cand.right),
+                            );
+                        }
+                        distCenter = Math.abs(cand.cx - currentRect.cx);
+                    }
+                    break;
+
+                case 'up':
+                    if (cand.bottom <= currentRect.top) {
+                        isValid = true;
+                        distMain = currentRect.top - cand.bottom;
+                        const overlapX =
+                            Math.min(currentRect.right, cand.right) - Math.max(currentRect.left, cand.left);
+                        isOverlapping = overlapX > 0;
+                        if (!isOverlapping) {
+                            distCross = Math.max(
+                                0,
+                                Math.max(currentRect.left, cand.left) - Math.min(currentRect.right, cand.right),
+                            );
+                        }
+                        distCenter = Math.abs(cand.cx - currentRect.cx);
+                    }
+                    break;
+            }
+
+            if (isValid) {
+                let score = distMain;
+                score += distCross * 10;
+                score += distCenter * 0.1;
+
+                if (score < minScore) {
+                    minScore = score;
+                    bestCandidate = cand;
+                }
+            }
+        });
+
+        if (bestCandidate) {
+            lastKeyboardMove.current = {
+                fromId: currentId,
+                toId: (bestCandidate as Rect).id,
+                direction: direction,
+            };
+            return (bestCandidate as Rect).id;
+        }
+    };
+
+    const handleArrows = (nodeId: Id, dir: ArrowDirection) => {
+        const nextId = findNextNode(nodeId, dir);
+        if (nextId) setSelectedId(nextId);
     };
 
     function generateNodeName(id: Id | null, prettify = true): Id | null {
@@ -160,10 +340,12 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
 
     function handleReveal(nodeId: Id, dir: Direction) {
         saveUndoState();
-
         const sources = dir === 'backward' ? initialData.findParents(nodeId) : initialData.findChildren(nodeId);
-        const set = new Set([...whiteListIds, ...sources.map((v) => v.from)]);
+        if (sources.length === 0) return;
+        const set = new Set([...whiteListIds, ...sources.map((v) => (dir === 'backward' ? v.from : v.to))]);
         setWhiteListIds([...set]);
+        setSelectedId(dir === 'backward' ? sources[0].from : sources[0].to);
+        // handleArrows(nodeId, dir === 'backward' ? 'up' : 'down');
     }
 
     const selectedNode = selectedId ? initialData.nodes.get(selectedId) ?? null : null;
@@ -230,6 +412,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                     groupByModules={groupByModules}
                     mainId={focusId}
                     onContextMenuOpen={handleContextMenuOpen}
+                    onNodeRectsChange={setNodeRects}
                 />
             </div>
             <Sidebar

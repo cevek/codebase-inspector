@@ -21,6 +21,16 @@ const MENU_ID = 'graph_context_menu';
 
 export type ContextMenuCb = (id: Id) => ContextMenuItem[];
 
+export interface Rect {
+    id: Id;
+    cx: number;
+    cy: number;
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+}
+
 export const GraphViewer: React.FC<{
     graph: Graph;
     selectedId: Id | null;
@@ -30,6 +40,7 @@ export const GraphViewer: React.FC<{
     groupByModules: boolean;
     onContextMenuOpen?: (id: Id) => ContextMenuItem[];
     layoutDirection?: LayoutDirection;
+    onNodeRectsChange?: (rects: Rect[]) => void;
 }> = ({
     graph,
     selectedId,
@@ -38,10 +49,11 @@ export const GraphViewer: React.FC<{
     onSelect,
     onDoubleClick,
     groupByModules,
+    onNodeRectsChange,
     layoutDirection = 'TB',
 }) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const [{domIdToIdMap, idToDomIdMap}, setMap] = React.useState<{
+    const mapRef = React.useRef<{
         domIdToIdMap: Map<string, Id>;
         idToDomIdMap: Map<Id, string>;
     }>({
@@ -61,13 +73,33 @@ export const GraphViewer: React.FC<{
             e.preventDefault();
         }
     }
+    const getGraphNodesRects = React.useCallback((): Rect[] => {
+        if (!containerRef.current) return [];
+        const nodeElements = Array.from(containerRef.current.querySelectorAll<SVGGElement>('g.node[id]'));
+        return nodeElements
+            .map<Rect | null>((el) => {
+                const id = mapRef.current.domIdToIdMap.get(el.id);
+                if (!id) return null;
+                const rect = el.getBoundingClientRect();
+                return {
+                    id,
+                    cx: rect.left + rect.width / 2,
+                    cy: rect.top + rect.height / 2,
+                    left: rect.left,
+                    top: rect.top,
+                    right: rect.right,
+                    bottom: rect.bottom,
+                };
+            })
+            .filter((r): r is Rect => !!r);
+    }, [containerRef]);
     const [menuItems, setMenuItems] = React.useState<ContextMenuItem[]>([]);
     const transformComponentRef = React.useRef<ReactZoomPanPinchContentRef>(null);
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
         let isMounted = true;
 
-        const renderGraph = async () => {
+        const renderGraph = () => {
             try {
                 const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz(
                     graph,
@@ -77,7 +109,7 @@ export const GraphViewer: React.FC<{
 
                 if (!isMounted) return;
 
-                setMap({domIdToIdMap, idToDomIdMap});
+                mapRef.current = {domIdToIdMap, idToDomIdMap};
 
                 const svgString = graphviz.layout(dotString, 'svg', 'dot');
                 const container = containerRef.current;
@@ -91,6 +123,8 @@ export const GraphViewer: React.FC<{
                 }
 
                 container.innerHTML = svgString;
+                onNodeRectsChange?.(getGraphNodesRects());
+
                 const newSvg = container.firstElementChild as SVGSVGElement;
 
                 if (snapshot && newSvg) {
@@ -115,6 +149,7 @@ export const GraphViewer: React.FC<{
         renderGraph();
         reselectMainId();
         reselectSelection();
+        console.log('redraw graph');
 
         return () => {
             isMounted = false;
@@ -122,12 +157,13 @@ export const GraphViewer: React.FC<{
     }, [graph, groupByModules, layoutDirection]);
 
     React.useEffect(() => {
+        console.log('effect reselectSelection', selectedId);
         reselectSelection();
     }, [selectedId]);
 
     React.useEffect(() => {
         reselectMainId();
-    }, [mainId, idToDomIdMap]);
+    }, [mainId]);
 
     function reselectSelection() {
         if (containerRef.current) {
@@ -137,7 +173,7 @@ export const GraphViewer: React.FC<{
             previouslySelectedEdges.forEach((el) => el.classList.remove(classes.selectedEdge));
         }
         if (selectedId && containerRef.current) {
-            const element = containerRef.current.querySelector(`#${idToDomIdMap.get(selectedId)}`);
+            const element = containerRef.current.querySelector(`#${mapRef.current?.idToDomIdMap.get(selectedId)}`);
             element?.classList.add(classes.selected);
 
             const edges = containerRef.current.querySelectorAll(
@@ -151,7 +187,7 @@ export const GraphViewer: React.FC<{
     function reselectMainId() {
         if (containerRef.current) {
             if (mainId) {
-                const element = containerRef.current.querySelector(`#${idToDomIdMap.get(mainId)}`);
+                const element = containerRef.current.querySelector(`#${mapRef.current?.idToDomIdMap.get(mainId)}`);
                 element?.classList.add(classes.mainNode);
             } else {
                 const element = containerRef.current.querySelector(`.${classes.mainNode}`);
@@ -180,7 +216,7 @@ export const GraphViewer: React.FC<{
         const groupElement = target.closest('g.node, g.cluster');
         if (groupElement) {
             const id = groupElement.getAttribute('id');
-            if (id) return domIdToIdMap.get(id);
+            if (id) return mapRef.current?.domIdToIdMap.get(id);
         }
     }
     const clickHandlers = useIgnoreClickOnDrag();

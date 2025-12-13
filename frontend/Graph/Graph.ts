@@ -65,8 +65,14 @@ export class Graph {
     findChildren(id: Id) {
         return this.relationsMap.get(id) ?? [];
     }
+    findChildren2(id: Id) {
+        return this.relationsMap.get(id)?.map((v) => v.to) ?? [];
+    }
     findParents(id: Id) {
         return this.reverseRelationsMap.get(id) ?? [];
+    }
+    findParents2(id: Id) {
+        return this.reverseRelationsMap.get(id)?.map((v) => v.from) ?? [];
     }
     findSiblings(id: Id, withinParent?: Id) {
         const parents = this.findParents(id);
