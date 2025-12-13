@@ -35,6 +35,18 @@ export const CONFIG = {
             regex: /\/mappings\//,
             type: 'M',
         },
+        {
+            regex: /\/components\//,
+            type: 'V',
+        },
+        {
+            regex: /\/containers\//,
+            type: 'C',
+        },
+        {
+            regex: /\/layouts\//,
+            type: 'L',
+        },
     ],
     actions: {
         typeKeywords: ['ActionCreator', 'CallHistoryMethodAction', '@@router/'],

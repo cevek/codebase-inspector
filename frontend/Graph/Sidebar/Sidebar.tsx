@@ -175,6 +175,18 @@ export const Sidebar: React.FC<{
                     <span>Mappings</span>
                     <kbd className={styles.kbd}>M</kbd>
                 </div>
+                <div className={styles.shortcutRow}>
+                    <span>Component Container</span>
+                    <kbd className={styles.kbd}>C</kbd>
+                </div>
+                <div className={styles.shortcutRow}>
+                    <span>Component View</span>
+                    <kbd className={styles.kbd}>V</kbd>
+                </div>
+                <div className={styles.shortcutRow}>
+                    <span>Component Layout</span>
+                    <kbd className={styles.kbd}>L</kbd>
+                </div>
             </div>
             <div className={styles.helpSection}>
                 <div className={styles.helpHeader}>

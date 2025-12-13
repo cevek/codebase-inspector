@@ -7,7 +7,7 @@ export type BaseItem = {
 export type Loc = {
     url: string;
     module: string;
-    layer: null | 'DP' | 'E' | 'M' | 'S';
+    layer: null | 'DP' | 'E' | 'M' | 'S' | 'C' | 'V' | 'L';
 };
 
 export type ApiRequest = {
