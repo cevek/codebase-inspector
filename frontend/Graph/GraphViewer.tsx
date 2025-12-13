@@ -35,6 +35,7 @@ export interface Rect {
 
 export const GraphViewer: React.FC<{
     graph: Graph;
+    initialData: Graph;
     selectedId: Id | null;
     mainId: Id | null;
     onSelect?: (id: Id | null) => void;
@@ -45,6 +46,7 @@ export const GraphViewer: React.FC<{
     onNodeRectsChange?: (rects: Rect[]) => void;
 }> = ({
     graph,
+    initialData,
     selectedId,
     mainId,
     onContextMenuOpen,
@@ -103,11 +105,12 @@ export const GraphViewer: React.FC<{
 
         const renderGraph = () => {
             try {
-                const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz(
-                    graph,
+                const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz({
+                    data: graph,
+                    initialData,
                     groupByModules,
-                    layoutDirection,
-                );
+                    direction: layoutDirection,
+                });
 
                 if (!isMounted) return;
 
@@ -125,9 +128,9 @@ export const GraphViewer: React.FC<{
                 }
 
                 container.innerHTML = svgString;
-                onNodeRectsChange?.(getGraphNodesRects());
-
                 const newSvg = container.firstElementChild as SVGSVGElement;
+                const rects = getGraphNodesRects();
+                onNodeRectsChange?.(rects);
 
                 if (snapshot && newSvg) {
                     newSvg.style.opacity = '0';
@@ -253,7 +256,10 @@ export const GraphViewer: React.FC<{
                 {menuItems.map((item, i) => (
                     <Item key={i} onClick={item.onClick} disabled={item.disabled}>
                         <div className={classes.ctxMenuItem}>
-                            {item.label} {item.hotkey && <span className={classes.ctxMenuItemHotkey}>{item.hotkey.join(' + ')}</span>}
+                            {item.label}{' '}
+                            {item.hotkey && (
+                                <span className={classes.ctxMenuItemHotkey}>{item.hotkey.join(' + ')}</span>
+                            )}
                         </div>
                     </Item>
                 ))}

@@ -6,22 +6,24 @@ import {THEME} from './THEME';
 const sanitizeId = (id: string) => id.replace(/\$|:|\//g, '_');
 const escapeLabel = (label: string) => label.replace(/"/g, '\\"');
 
-const createEpicHtmlLabel = ({
+const createHtmlLabel = ({
     layer,
     label,
     method,
     triggerPort,
     successPort,
     errorPort,
+    hiddens,
 }: {
     layer: string;
     label: string;
-    method: string | null;
-    triggerPort: boolean | null;
-    successPort: boolean | null;
-    errorPort: boolean | null;
+    method?: string | null;
+    triggerPort?: boolean | null;
+    successPort?: boolean | null;
+    errorPort?: boolean | null;
+    hiddens?: string;
 }) => `
-    <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="3">
+    <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
         <TR>
             ${layer ? `<TD>${layer}</TD>` : ''}
             ${triggerPort ? `<TD PORT="trigger">📍</TD>` : ''}
@@ -30,11 +32,22 @@ const createEpicHtmlLabel = ({
             ${successPort ? `<TD PORT="success">✔</TD>` : ''}
             ${errorPort ? `<TD PORT="error">✖</TD>` : ''}
         </TR>
+        ${hiddens ? `<TR><TD colspan="10">${hiddens}</TD></TR>` : ''}
     </TABLE>
 `;
 // ${url ? `<TR><TD COLSPAN="3"><font color="${THEME.colors.apiCall}">${url}</font></TD></TR>` : ''}
 
-export function generateGraphviz(data: Graph, groupByModules: boolean, direction: 'TB' | 'LR' = 'TB') {
+export function generateGraphviz({
+    data,
+    initialData,
+    groupByModules,
+    direction = 'TB',
+}: {
+    data: Graph;
+    initialData: Graph;
+    groupByModules: boolean;
+    direction?: 'TB' | 'LR';
+}) {
     const domIdToIdMap = new Map<string, Id>();
     const idToDomIdMap = new Map<Id, string>();
     const renderedNodeIds = new Set<Id>();
@@ -64,9 +77,28 @@ export function generateGraphviz(data: Graph, groupByModules: boolean, direction
         renderedNodeIds.add(id);
         const domId = registerDomId(id);
 
+        const hiddenBackwardNodesCount = initialData.findParents2(id).length - data.findParents2(id).length;
+        const hiddenForwardNodesCount = initialData.findChildren2(id).length - data.findChildren2(id).length;
+        const hiddensArr: string[] = [];
+        if (hiddenBackwardNodesCount) hiddensArr.push(`▲${hiddenBackwardNodesCount}`);
+        if (hiddenForwardNodesCount) hiddensArr.push(`▼${hiddenForwardNodesCount}`);
+
+        if (id === 'getFetchUserEpic') {
+            console.log({
+                initialDataParents: initialData.findParents2(id),
+                dataParents: data.findParents2(id),
+                initialDataChildren: initialData.findChildren2(id),
+                dataChildren: data.findChildren2(id),
+            });
+        }
+
+        const hiddensHtml =
+            hiddensArr.length > 0
+                ? `<font point-size="10" color="${THEME.colors.hidden}">${hiddensArr.join(' ')}</font>`
+                : '';
+
         let layerHtml = '';
         if (node.location.layer) layerHtml = `<font color="${THEME.colors.layer}">${node.location.layer}</font> `;
-        const label = layerHtml + escapeLabel(node.name);
 
         if (node.type === 'epic') {
             const epicId = id;
@@ -97,24 +129,35 @@ export function generateGraphviz(data: Graph, groupByModules: boolean, direction
                 ),
             );
 
-            const label = createEpicHtmlLabel({
+            const label = createHtmlLabel({
                 layer: layerHtml,
                 label: node.name,
                 method: req?.type ?? null,
                 triggerPort,
                 successPort,
                 errorPort,
+                hiddens: hiddensHtml,
             });
 
             return `    "${epicId}" [id="${domId}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="#00000044", label=<${label}>];`;
         }
         if (node.type === 'action') {
-            return `    "${id}" [id="${domId}", label=<${label}>, shape=box, style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="#00000044"];`;
+            const labelHTML = createHtmlLabel({
+                layer: layerHtml,
+                label: node.name,
+                hiddens: hiddensHtml,
+            });
+            return `    "${id}" [id="${domId}", label=<${labelHTML}>, shape=box, style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="#00000044"];`;
         }
         if (node.type === 'component') {
-            return `    "${id}" [id="${domId}", label=<${label}>, shape=note, style="filled,rounded", fillcolor="${THEME.colors.componentNode.fill}", color="#00000044"];`;
+            const labelHTML = createHtmlLabel({
+                layer: layerHtml,
+                label: node.name,
+                hiddens: hiddensHtml,
+            });
+            return `    "${id}" [id="${domId}", label=<${labelHTML}>, shape=note, style="filled,rounded", fillcolor="${THEME.colors.componentNode.fill}", color="#00000044"];`;
         }
-        return `    "${id}" [id="${domId}", label=<${label}>,  style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="#00000044"];`;
+        return `    "${id}" [id="${domId}", label="unknown",  style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="#00000044"];`;
     }
 
     function traverseCluster(cluster: Cluster) {
@@ -123,7 +166,6 @@ export function generateGraphviz(data: Graph, groupByModules: boolean, direction
 
         lines.push(`\n  subgraph "${clusterDotId}" {`);
         lines.push(`    id="${domId}";`);
-        // lines.push(`    clusterrank=local;`);
         lines.push(`    label = "${escapeLabel(cluster.name)}";`);
         lines.push(`    style = "rounded,dashed";`);
         lines.push(`    color = "${THEME.colors.clusterBorder}";`);

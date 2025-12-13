@@ -9,7 +9,7 @@ export function embedActionNodes(graph: Graph) {
             for (const epicActionRelation of actionRelations) {
                 const actionId = epicActionRelation.to;
                 const action = graph.nodes.get(actionId);
-                if (!action) continue;
+                if (!action || action.type !== 'action') continue;
 
                 const actionRelations = graph.relationsMap.get(actionId) ?? [];
                 if (action.name.includes('Success')) {

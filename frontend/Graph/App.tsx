@@ -105,7 +105,6 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
                 setWhiteListIds(urlWhiteListIds);
                 hasUpdates = true;
             }
-
         } catch (e) {
             console.error('Failed to sync state from URL', e);
         } finally {
@@ -136,7 +135,6 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
 
         window.location.hash = params.toString();
     }, [selectedId, focusId, layoutDirection, groupByModules, removedIds, whiteListIds, isUrlLoaded]);
-
 
     const lastKeyboardMove = useRef<{
         fromId: Id;
@@ -524,6 +522,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         <div style={{width: '100%', height: '100%'}}>
             <div onClick={() => setSelectedId(null)}>
                 <GraphViewer
+                    initialData={initialData}
                     graph={graphData}
                     onSelect={setSelectedId}
                     onDoubleClick={handleOpenFileInIde}

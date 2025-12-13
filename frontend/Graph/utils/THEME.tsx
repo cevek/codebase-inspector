@@ -5,6 +5,7 @@ export const THEME = {
         nodeLabel: 14,
     },
     colors: {
+        hidden: '#00000077',
         edge: '#555555',
         clusterBorder: '#888888',
         clusterBg: '#00000005',
