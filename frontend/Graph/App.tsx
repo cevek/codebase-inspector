@@ -5,16 +5,15 @@ import {Graph} from './Graph';
 import {GraphViewer, Rect} from './GraphViewer';
 import {Sidebar} from './Sidebar/Sidebar';
 
-import {useUrlState} from './hooks/useUrlSync';
 import {useGraphContextMenu} from './hooks/useGraphContextMenu';
 import {useGraphHotkeys} from './hooks/useGraphHotkeys';
 import {useGraphState} from './hooks/useGraphState';
 import {useIde} from './hooks/useIde';
 import {usePersistentState} from './hooks/usePersistentState';
-import {useUrlSync} from './hooks/useUrlSync';
 import {GraphFilter} from './utils/GraphFilter';
 import {SpatialNavigator} from './utils/SpatialNavigator';
 import {GraphFormatter} from './utils/formatters';
+import {useUrlState, useUrlSync} from './hooks/useUrlSync';
 
 /*
 
