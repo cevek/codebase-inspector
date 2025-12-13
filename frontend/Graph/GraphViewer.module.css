@@ -2,8 +2,10 @@
     cursor: default !important;
 }
 .selected path,
+.selected polygon,
 .selected ellipse {
     stroke: blue !important;
+    stroke-opacity: 1 !important;
     stroke-width: 3px !important;
     filter: drop-shadow(0 0 5px rgba(0, 0, 255, 0.5));
 }
@@ -26,4 +28,6 @@
 .mainNode path {
     stroke: darkblue !important;
     stroke-width: 3px !important;
+    stroke-opacity: 1 !important;
+    filter: drop-shadow(0 0 5px rgba(0, 0, 255, 0.5));
 }

@@ -19,6 +19,7 @@
     "dependencies": {
         "@hpcc-js/wasm": "^2.29.0",
         "cmdk": "^1.1.1",
+        "gsap": "^3.14.2",
         "lucide-react": "^0.561.0",
         "react-contexify": "^6.0.0",
         "react-zoom-pan-pinch": "^3.7.0"

@@ -65,7 +65,7 @@ export function generateGraphviz(data: Graph, groupByModules: boolean, direction
         const domId = registerDomId(id);
 
         let layerHtml = '';
-        if (node.location.layer) layerHtml = `<font color="gray">${node.location.layer}</font> `;
+        if (node.location.layer) layerHtml = `<font color="${THEME.colors.layer}">${node.location.layer}</font> `;
         const label = layerHtml + escapeLabel(node.name);
 
         if (node.type === 'epic') {
@@ -106,9 +106,15 @@ export function generateGraphviz(data: Graph, groupByModules: boolean, direction
                 errorPort,
             });
 
-            return `    "${epicId}" [id="${domId}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="${THEME.colors.epic.border}", label=<${label}>];`;
+            return `    "${epicId}" [id="${domId}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="#00000044", label=<${label}>];`;
         }
-        return `    "${id}" [id="${domId}", label=<${label}>, shape=box, style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="${THEME.colors.actionNode.border}"];`;
+        if (node.type === 'action') {
+            return `    "${id}" [id="${domId}", label=<${label}>, shape=box, style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="#00000044"];`;
+        }
+        if (node.type === 'component') {
+            return `    "${id}" [id="${domId}", label=<${label}>, shape=note, style="filled,rounded", fillcolor="${THEME.colors.componentNode.fill}", color="#00000044"];`;
+        }
+        return `    "${id}" [id="${domId}", label=<${label}>,  style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="#00000044"];`;
     }
 
     function traverseCluster(cluster: Cluster) {
@@ -117,6 +123,7 @@ export function generateGraphviz(data: Graph, groupByModules: boolean, direction
 
         lines.push(`\n  subgraph "${clusterDotId}" {`);
         lines.push(`    id="${domId}";`);
+        // lines.push(`    clusterrank=local;`);
         lines.push(`    label = "${escapeLabel(cluster.name)}";`);
         lines.push(`    style = "rounded,dashed";`);
         lines.push(`    color = "${THEME.colors.clusterBorder}";`);

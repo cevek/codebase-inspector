@@ -10,12 +10,14 @@ export const THEME = {
         clusterBg: '#00000005',
         epic: {
             fill: '#ffebffff',
-            border: '#d398d3ff',
         },
         actionNode: {
             fill: '#ececffff',
-            border: '#9494c2ff',
         },
-        apiCall: '#777777',
+        componentNode: {
+            fill: '#f4ffecff',
+        },
+        apiCall: '#00000077',
+        layer: '#00000077',
     },
 };

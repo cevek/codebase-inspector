@@ -7,8 +7,9 @@ import {Graph} from './Graph';
 import classes from './GraphViewer.module.css';
 import {useIgnoreClickOnDrag} from './hooks/useIgnoreDraggin';
 import {generateGraphviz} from './utils/generateGraphviz';
+import {animateRawAttributes, createAttributeSnapshot, RawSnapshot} from './utils/svgAnimate';
+import {assignStableIds} from './utils/assignStableIds';
 const graphviz = await Graphviz.load();
-
 export type LayoutDirection = 'TB' | 'LR';
 
 export type ContextMenuItem = {
@@ -62,7 +63,10 @@ export const GraphViewer: React.FC<{
     }
     const [menuItems, setMenuItems] = React.useState<ContextMenuItem[]>([]);
     const transformComponentRef = React.useRef<ReactZoomPanPinchContentRef>(null);
+
     React.useEffect(() => {
+        let isMounted = true;
+
         const renderGraph = async () => {
             try {
                 const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz(
@@ -70,20 +74,51 @@ export const GraphViewer: React.FC<{
                     groupByModules,
                     layoutDirection,
                 );
+
+                if (!isMounted) return;
+
                 setMap({domIdToIdMap, idToDomIdMap});
-                const svg = graphviz.layout(dotString, 'svg', 'dot');
-                containerRef.current!.innerHTML = svg;
-                for (const el of containerRef.current!.querySelectorAll('title')) {
-                    el.remove();
+
+                const svgString = graphviz.layout(dotString, 'svg', 'dot');
+                const container = containerRef.current;
+                if (!container) return;
+
+                let snapshot: RawSnapshot | undefined;
+                const currentSvg = container.firstElementChild as SVGSVGElement;
+
+                if (currentSvg && container.innerHTML.length < 100000) {
+                    snapshot = createAttributeSnapshot(currentSvg);
+                }
+
+                container.innerHTML = svgString;
+                const newSvg = container.firstElementChild as SVGSVGElement;
+
+                if (snapshot && newSvg) {
+                    newSvg.style.opacity = '0';
+                }
+
+                if (newSvg) {
+                    assignStableIds(newSvg);
+                    newSvg.querySelectorAll('title').forEach((el) => el.remove());
+                }
+
+                if (snapshot && newSvg) {
+                    animateRawAttributes(newSvg, snapshot);
+                } else if (newSvg) {
+                    newSvg.style.opacity = '1';
                 }
             } catch (err) {
-                console.error(err);
+                console.error('Graph render failed:', err);
             }
         };
 
         renderGraph();
         reselectMainId();
         reselectSelection();
+
+        return () => {
+            isMounted = false;
+        };
     }, [graph, groupByModules, layoutDirection]);
 
     React.useEffect(() => {
