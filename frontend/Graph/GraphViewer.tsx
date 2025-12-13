@@ -9,12 +9,14 @@ import {useIgnoreClickOnDrag} from './hooks/useIgnoreDraggin';
 import {generateGraphviz} from './utils/generateGraphviz';
 import {animateRawAttributes, createAttributeSnapshot, RawSnapshot} from './utils/svgAnimate';
 import {assignStableIds} from './utils/assignStableIds';
+import {HotKeyView} from './HotKeyView/HotKeyView';
 const graphviz = await Graphviz.load();
 export type LayoutDirection = 'TB' | 'LR';
 
 export type ContextMenuItem = {
     label: string;
     disabled?: boolean;
+    hotkey?: string[];
     onClick: () => void;
 };
 const MENU_ID = 'graph_context_menu';
@@ -250,7 +252,9 @@ export const GraphViewer: React.FC<{
             <Menu id={MENU_ID}>
                 {menuItems.map((item, i) => (
                     <Item key={i} onClick={item.onClick} disabled={item.disabled}>
-                        {item.label}
+                        <div className={classes.ctxMenuItem}>
+                            {item.label} {item.hotkey && <span className={classes.ctxMenuItemHotkey}>{item.hotkey.join(' + ')}</span>}
+                        </div>
                     </Item>
                 ))}
             </Menu>

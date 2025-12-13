@@ -1,0 +1,24 @@
+.kbd {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+}
+.plus {
+    font-size: 10px;
+    color: var(--text-tertiary);
+}
+
+
+.kbdKey {
+    display: inline-block;
+    padding: 0px 3px;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--text-primary);
+    background-color: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+    white-space: nowrap;
+}

@@ -31,4 +31,15 @@
     stroke: red !important;
 }
 
+.ctxMenuItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+.ctxMenuItemHotkey {
+    font-size: 10px;
+    opacity: 0.5
+}
 

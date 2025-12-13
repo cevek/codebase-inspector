@@ -136,6 +136,11 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         const handleGraphKeyDown = (e: KeyboardEvent) => {
             if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
 
+            if (e.key === 'Enter') {
+                if (selectedId) {
+                    handleFocusNode(selectedId);
+                }
+            }
             if (e.key === 'Backspace') {
                 if (selectedId) {
                     const dir = e.shiftKey ? ('backward' as const) : ('forward' as const);
@@ -391,30 +396,35 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         return [
             {
                 label: 'Focus subtree',
+                hotkey: ['↵'],
                 onClick: () => {
                     setFocusId(id);
                 },
             },
             {
                 label: 'Reveal backward',
+                hotkey: ['⌘ ↑'],
                 onClick: () => {
                     handleReveal(id, 'backward');
                 },
             },
             {
                 label: 'Reveal forward',
+                hotkey: ['⌘ ↓'],
                 onClick: () => {
                     handleReveal(id, 'forward');
                 },
             },
             {
                 label: 'Delete backward',
+                hotkey: ['⇧ ⌫'],
                 onClick: () => {
                     handleRemove(id, 'backward');
                 },
             },
             {
                 label: 'Delete forward',
+                hotkey: ['⌫'],
                 onClick: () => {
                     handleRemove(id, 'forward');
                 },
