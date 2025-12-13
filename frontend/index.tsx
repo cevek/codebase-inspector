@@ -1,11 +1,11 @@
 import {createRoot} from 'react-dom/client';
-import {GraphData, GraphSerialized, Id, Item} from '../types';
+import {GraphSerialized, Id, Item} from '../types';
 import {App} from './Graph/App';
 import {Graph} from './Graph/Graph';
-import {loadStateFromUrl} from './Graph/utils/decodeUrlPayload';
 import {embedActionNodes} from './Graph/utils/analyzeEmbeddedNodes';
+import {loadStateFromUrl} from './Graph/utils/decodeUrlPayload';
 
-const urlPayload = window.location.hash.slice('#payload='.length);
+const urlPayload = window.location.hash.match(/payload=([^&]*)/)?.[1];
 let graphSerialized = urlPayload ? await loadStateFromUrl<GraphSerialized>(urlPayload) : null;
 
 const reactRoot = createRoot(document.getElementById('root')!);

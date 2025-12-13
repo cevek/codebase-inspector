@@ -48,6 +48,96 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     const [groupByModules, setGroupByModules] = usePersistentState<boolean>({key: 'groupByModules'}, false);
     const [nodeRects, setNodeRects] = useState<Rect[]>([]);
 
+    const [isUrlLoaded, setIsUrlLoaded] = useState(false);
+
+    useEffect(() => {
+        try {
+            const hash = window.location.hash.slice(1);
+            const params = new URLSearchParams(hash);
+
+            let hasUpdates = false;
+
+            const parseJsonParam = (key: string) => {
+                const val = params.get(key);
+                if (val) {
+                    try {
+                        return JSON.parse(val);
+                    } catch (e) {
+                        console.error('Error parsing url param', key);
+                        return null;
+                    }
+                }
+                return null;
+            };
+
+            const urlSelectedId = params.get('selectedId') as Id | null;
+            if (urlSelectedId) {
+                setSelectedId(urlSelectedId);
+                hasUpdates = true;
+            }
+
+            const urlFocusId = params.get('focusId') as Id | null;
+            if (urlFocusId) {
+                setFocusId(urlFocusId);
+                hasUpdates = true;
+            }
+
+            const urlLayoutDirection = params.get('layoutDirection') as LayoutDirection | null;
+            if (urlLayoutDirection) {
+                setLayoutDirection(urlLayoutDirection);
+                hasUpdates = true;
+            }
+
+            const urlGroupByModules = params.get('groupByModules');
+            if (urlGroupByModules !== null) {
+                setGroupByModules(urlGroupByModules === 'true');
+                hasUpdates = true;
+            }
+
+            const urlRemovedIds = parseJsonParam('removedIds');
+            if (urlRemovedIds) {
+                setRemovedIds(urlRemovedIds);
+                hasUpdates = true;
+            }
+
+            const urlWhiteListIds = parseJsonParam('whiteListIds');
+            if (urlWhiteListIds) {
+                setWhiteListIds(urlWhiteListIds);
+                hasUpdates = true;
+            }
+
+        } catch (e) {
+            console.error('Failed to sync state from URL', e);
+        } finally {
+            setIsUrlLoaded(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isUrlLoaded) return;
+
+        const hash = window.location.hash.slice(1);
+        const params = new URLSearchParams(hash);
+
+        if (selectedId) params.set('selectedId', selectedId);
+        else params.delete('selectedId');
+
+        if (focusId) params.set('focusId', focusId);
+        else params.delete('focusId');
+
+        params.set('layoutDirection', layoutDirection);
+        params.set('groupByModules', String(groupByModules));
+
+        if (removedIds.length > 0) params.set('removedIds', JSON.stringify(removedIds));
+        else params.delete('removedIds');
+
+        if (whiteListIds.length > 0) params.set('whiteListIds', JSON.stringify(whiteListIds));
+        else params.delete('whiteListIds');
+
+        window.location.hash = params.toString();
+    }, [selectedId, focusId, layoutDirection, groupByModules, removedIds, whiteListIds, isUrlLoaded]);
+
+
     const lastKeyboardMove = useRef<{
         fromId: Id;
         toId: Id;
@@ -55,6 +145,7 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     } | null>(null);
 
     useLayoutEffect(() => {
+        // ... (весь ваш код useLayoutEffect без изменений)
         let newGraph = initialData.clone();
         embedActionNodes(newGraph);
 
@@ -188,8 +279,6 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
         document.addEventListener('keydown', handleGraphKeyDown);
         return () => document.removeEventListener('keydown', handleGraphKeyDown);
     }, [selectedId, nodeRects, removedIds, editHistory, redoHistory, focusId, whiteListIds, layoutDirection]);
-    // ^ Added dependencies needed for current state snapshotting inside handlers if closure is stale,
-    // though setState functional updates mitigate most issues.
 
     useEffect(() => {
         const handleMouseClick = () => {
@@ -200,11 +289,11 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
     }, []);
 
     const handleRestoreId = (idToRestore: string) => {
-        saveUndoState(); // Optional: Add this if you want Restore to be undoable
+        saveUndoState();
         setRemovedIds(removedIds.filter(({id}) => id !== idToRestore));
     };
     const handleRestoreAll = () => {
-        saveUndoState(); // Optional: Add this if you want Restore All to be undoable
+        saveUndoState();
         setRemovedIds([]);
     };
 
@@ -231,7 +320,6 @@ export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
             }
         }
 
-        // console.log({currentRect, nodeRects});
         let bestCandidate: Rect | null = null;
         let minScore = Infinity;
 
