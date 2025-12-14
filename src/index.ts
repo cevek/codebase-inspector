@@ -7,7 +7,7 @@ import {collectReducers} from './analyzers/reducers';
 import {AnalyzerContext} from './core/AnalyzerContext';
 import {createProgram} from './core/program';
 import {Id, Item} from './types';
-import {compressFileIntoUrlSafeString} from './utils/compressFile';
+import {compressStrIntoUrlSafeString} from './utils/compressStrIntoUrlSafeString';
 import {renormalizeGraphIds} from './utils/renormalizeGraphIds';
 
 const DEV_MODE = true;
@@ -46,7 +46,7 @@ function main() {
             relations: Object.fromEntries(result.relations),
         };
 
-        const payload = compressFileIntoUrlSafeString(JSON.stringify(output));
+        const payload = compressStrIntoUrlSafeString(JSON.stringify(output));
 
         if (DEV_MODE) {
             open('http://localhost:5174/#payload=' + payload);

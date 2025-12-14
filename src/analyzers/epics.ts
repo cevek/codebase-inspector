@@ -2,7 +2,9 @@ import * as ts from 'typescript';
 import {CONFIG} from '../config';
 import {AnalyzerContext} from '../core/AnalyzerContext';
 import {Action, ApiCall, ApiRequest, Id} from '../types';
-import {getLocation, getNodeKey, getUrlFromArgument} from '../utils/ast';
+import {getUrlFromArgument} from '../utils/getUrlFromArgument';
+import {getNodeKey} from '../utils/getNodeKey';
+import {getLocation} from '../utils/getLocation';
 
 type HttpMethod = ApiRequest['type'];
 
@@ -13,11 +15,7 @@ export function collectEpics(context: AnalyzerContext) {
         for (const statement of sourceFile.statements) {
             if (ts.isVariableStatement(statement)) {
                 for (const decl of statement.declarationList.declarations) {
-                    if (
-                        ts.isIdentifier(decl.name) &&
-                        decl.initializer &&
-                        isNodeEpic(context, decl, decl.name.text)
-                    ) {
+                    if (ts.isIdentifier(decl.name) && decl.initializer && isNodeEpic(context, decl, decl.name.text)) {
                         processEpic(context, decl.name.text, decl.initializer, statement, sourceFile);
                     }
                 }

@@ -1,20 +1,8 @@
+import path from 'path';
+import {basename, dirname} from 'path/posix';
 import * as ts from 'typescript';
-import path, {basename, dirname} from 'node:path';
-import {Id, Loc} from '../types';
 import {CONFIG} from '../config';
-
-export function getNodeKey(node: ts.Node): Id {
-    const sourceFile = node.getSourceFile();
-    return `${sourceFile.fileName}:${node.getStart()}` as Id;
-}
-
-export function getUrlFromArgument(arg: ts.Node, sourceFile: ts.SourceFile): string {
-    if (!arg) return 'undefined';
-    if (ts.isStringLiteral(arg)) {
-        return arg.text;
-    }
-    return printer.printNode(ts.EmitHint.Unspecified, arg, sourceFile);
-}
+import {Loc} from '../types';
 
 export function getLocation(tsconfigDir: string, node: ts.Node): Loc {
     const sourceFile = node.getSourceFile();
@@ -39,5 +27,3 @@ export function getLocation(tsconfigDir: string, node: ts.Node): Loc {
         layer: type,
     };
 }
-
-export const printer = ts.createPrinter({newLine: ts.NewLineKind.LineFeed, omitTrailingSemicolon: true});

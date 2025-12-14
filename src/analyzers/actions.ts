@@ -1,7 +1,8 @@
 import * as ts from 'typescript';
 import {CONFIG} from '../config';
 import {AnalyzerContext} from '../core/AnalyzerContext';
-import {getLocation, getNodeKey} from '../utils/ast';
+import {getNodeKey} from '../utils/getNodeKey';
+import {getLocation} from '../utils/getLocation';
 
 export function collectActions(context: AnalyzerContext) {
     for (const sourceFile of context.program.getSourceFiles()) {

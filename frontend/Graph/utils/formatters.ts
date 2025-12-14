@@ -1,5 +1,5 @@
-import {Id} from '../../../types';
 import {Graph} from '../Graph';
+import {Id} from '../types';
 
 export const GraphFormatter = {
     nodeName: (graph: Graph, id: Id | null, prettify = true): string | null => {
