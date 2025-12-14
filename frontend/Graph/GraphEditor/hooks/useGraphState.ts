@@ -1,7 +1,6 @@
 import {useState, useMemo} from 'react';
-import {Id} from '../../../../types';
 import {Graph} from '../../Graph';
-import {Direction, LayoutDirection} from '../../types';
+import {Direction, LayoutDirection, Id} from '../../types';
 import {embedActionNodes} from '../../logic/embedActionNodes';
 import {useEvent} from '../../hooks/useEvent';
 

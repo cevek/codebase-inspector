@@ -1,4 +1,4 @@
-import {Cluster, Id, Item} from '../../types';
+import {Cluster, Id, Item} from './types';
 import {Direction, PortName} from './types';
 import {generateGraphClusters} from './logic/generateGraphClusters';
 

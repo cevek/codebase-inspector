@@ -1,9 +1,8 @@
 import * as React from 'react';
 import {Item, Menu, useContextMenu} from 'react-contexify';
 import {ReactZoomPanPinchContentRef, TransformComponent, TransformWrapper} from 'react-zoom-pan-pinch';
-import {Id} from '../../../types';
 import {Graph} from '../Graph';
-import {LayoutDirection} from '../types';
+import {LayoutDirection, Id} from '../types';
 import classes from './GraphViewer.module.css';
 import {useIgnoreClickOnDrag} from './hooks/useIgnoreDraggin';
 import {ContextMenuCb, ContextMenuItem, Rect} from './types';

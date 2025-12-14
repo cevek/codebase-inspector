@@ -1,4 +1,4 @@
-import {Cluster, Id} from '../../../types';
+import {Cluster, Id} from '../types';
 
 export function generateGraphClusters(nodes: {id: Id; module: string}[]): Map<Id, Cluster> {
     const clusters = new Map<Id, Cluster>();

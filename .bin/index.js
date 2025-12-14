@@ -1,3 +1,3 @@
 #!/usr/bin/env node
 
-require('../dist/analyzeProject.js');
+require('../dist/index.js');

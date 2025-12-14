@@ -1,6 +1,5 @@
-import {Id} from '../../../../types';
 import {Graph} from '../../Graph';
-import {Direction} from '../../types';
+import {Direction, Id} from '../../types';
 
 export type Removing = {id: Id; dir: Direction};
 

@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {Id, Item} from './types';
+import {Id, Item} from '../types';
 
 export function renormalizeGraphIds(
     DEVMode: boolean,

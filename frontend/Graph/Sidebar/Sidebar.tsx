@@ -1,7 +1,7 @@
 import React, {JSX} from 'react';
 import styles from './Sidebar.module.css';
 import {IdeItem, IdeValue} from '../GraphEditor/hooks/useIde';
-import {Id} from '../../../types';
+import {Id} from '../types';
 import {Icons} from './Icons';
 import {Direction, LayoutDirection} from '../types';
 import {Search, SearchItem} from './Search/Search';

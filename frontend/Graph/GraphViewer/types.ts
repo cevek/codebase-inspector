@@ -1,4 +1,4 @@
-import {Id} from '../../../types';
+import {Id} from '../types';
 
 export interface Rect {
     id: Id;

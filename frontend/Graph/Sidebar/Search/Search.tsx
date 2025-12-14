@@ -1,7 +1,7 @@
 import React, {useState, useRef, useEffect} from 'react';
 import {Command} from 'cmdk';
 import styles from './Search.module.css';
-import {Id} from '../../../../types';
+import {Id} from '../../types';
 
 export interface SearchItem {
     id: Id;

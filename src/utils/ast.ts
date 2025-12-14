@@ -1,7 +1,7 @@
 import * as ts from 'typescript';
 import path, {basename, dirname} from 'node:path';
 import {Id, Loc} from '../types';
-import {CONFIG} from '../analyzeProject';
+import {CONFIG} from '../config';
 
 export function getNodeKey(node: ts.Node): Id {
     const sourceFile = node.getSourceFile();

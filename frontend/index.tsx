@@ -1,8 +1,8 @@
 import {createRoot} from 'react-dom/client';
-import {GraphSerialized, Id, Item} from '../types';
 import {Graph} from './Graph/Graph';
 import {GraphEditor} from './Graph/GraphEditor/GraphEditor';
 import {loadStateFromUrl} from './Graph/utils/decodeUrlPayload';
+import {GraphSerialized, Id, Item} from '../src/types';
 
 const urlPayload = window.location.hash.match(/payload=([^&]*)/)?.[1];
 let graphSerialized = urlPayload ? await loadStateFromUrl<GraphSerialized>(urlPayload) : null;

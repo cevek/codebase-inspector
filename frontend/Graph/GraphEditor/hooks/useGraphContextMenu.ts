@@ -1,7 +1,6 @@
-import {Id} from '../../../../types';
 import {ContextMenuCb} from '../../GraphViewer/types';
 import {useEvent} from '../../hooks/useEvent';
-import {Direction} from '../../types';
+import {Direction, Id} from '../../types';
 
 interface MenuActions {
     focusNode: (id: Id) => void;

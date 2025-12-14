@@ -1,6 +1,6 @@
 import React from 'react';
-import {Id} from '../../../../types';
 import {DOMMapping} from '../types';
+import {Id} from '../../types';
 
 export function useGraphSelection(
     containerRef: React.RefObject<HTMLDivElement | null>,
