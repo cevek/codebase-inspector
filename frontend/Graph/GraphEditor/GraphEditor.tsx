@@ -9,11 +9,11 @@ import {Sidebar} from '../Sidebar/Sidebar';
 import {GraphFormatter} from '../utils/formatters';
 import {useGraphContextMenu} from './hooks/useGraphContextMenu';
 import {useGraphHotkeys} from './hooks/useGraphHotkeys';
-import {useGraphState} from './hooks/useGraphState';
+import {GraphViewState, useGraphState} from './hooks/useGraphState';
 import {useIde} from './hooks/useIde';
-import {useUrlState, useUrlSync} from './hooks/useUrlSync';
 import {GraphFilter} from './logic/GraphFilter';
 import {SpatialNavigator} from './logic/SpatialNavigator';
+import {urlSyncFactory} from '../hooks/useUrlSync';
 
 /*
 
@@ -32,28 +32,37 @@ src/
 
 */
 
+const {readUrlData, useUrlSync} = urlSyncFactory<GraphViewState>()({
+    selectedId: 'string',
+    focusId: 'string',
+    layoutDirection: 'string',
+    removedIds: 'json',
+    whiteListIds: 'json',
+    groupByModules: 'boolean',
+    embedSpecialActions: 'boolean',
+});
+
 export const GraphEditor: React.FC<{data: Graph}> = ({data: rawInitialGraph}) => {
-    const initialUrlData = useUrlState();
+    const {state, actions, history, initialGraph} = useGraphState(rawInitialGraph, readUrlData());
+    useUrlSync(state);
 
-    const {state, actions, history, initialGraph} = useGraphState(rawInitialGraph, initialUrlData);
+    const filteredGraph = useMemo(
+        () =>
+            GraphFilter.apply(initialGraph, {
+                removedIds: state.removedIds,
+                whiteListIds: state.whiteListIds,
+                focusId: state.focusId,
+            }),
+        [initialGraph, state.removedIds, state.whiteListIds, state.focusId],
+    );
 
-    useUrlSync({state});
-
-    const filteredGraph = useMemo(() => {
-        return GraphFilter.apply(initialGraph, {
-            removedIds: state.removedIds,
-            whiteListIds: state.whiteListIds,
-            focusId: state.focusId,
-        });
-    }, [initialGraph, state.removedIds, state.whiteListIds, state.focusId]);
-
-    const navigator = useRef(new SpatialNavigator());
+    const spatialNavigator = useRef(new SpatialNavigator());
     const [nodeRects, setNodeRects] = useState<Rect[]>([]);
 
     useGraphHotkeys({
         selectedId: state.selectedId,
         nodeRects,
-        navigator,
+        spatialNavigator,
         actions,
         history,
     });
@@ -63,7 +72,7 @@ export const GraphEditor: React.FC<{data: Graph}> = ({data: rawInitialGraph}) =>
     const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(filteredGraph);
 
     useEffect(() => {
-        const handleMouseClick = () => navigator.current.reset();
+        const handleMouseClick = () => spatialNavigator.current.reset();
         document.addEventListener('mousedown', handleMouseClick);
         return () => document.removeEventListener('mousedown', handleMouseClick);
     }, []);

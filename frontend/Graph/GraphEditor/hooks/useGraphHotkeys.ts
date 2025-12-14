@@ -7,7 +7,7 @@ import {SpatialNavigator} from '../logic/SpatialNavigator';
 interface HotkeysParams {
     selectedId: Id | null;
     nodeRects: Rect[];
-    navigator: React.MutableRefObject<SpatialNavigator>;
+    spatialNavigator: React.RefObject<SpatialNavigator>;
 
     actions: {
         focusNode: (id: Id) => void;
@@ -21,11 +21,12 @@ interface HotkeysParams {
     };
 }
 
-export const useGraphHotkeys = ({selectedId, nodeRects, navigator, actions, history}: HotkeysParams) => {
+export const useGraphHotkeys = ({selectedId, nodeRects, spatialNavigator, actions, history}: HotkeysParams) => {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Игнорируем ввод текста в инпутах
-            if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+            const target = e.target as HTMLElement;
+            if ((target.tagName === 'INPUT' && target.getAttribute('type') === 'text') || target.tagName === 'TEXTAREA')
+                return;
 
             // --- 1. Undo / Redo ---
             if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
@@ -44,11 +45,13 @@ export const useGraphHotkeys = ({selectedId, nodeRects, navigator, actions, hist
             if (selectedId) {
                 if (e.key === 'Enter') {
                     actions.focusNode(selectedId);
+                    e.preventDefault();
                 }
 
                 if (e.key === 'Backspace') {
                     const dir = e.shiftKey ? 'backward' : 'forward';
                     actions.removeNode(selectedId, dir);
+                    e.preventDefault();
                 }
             }
 
@@ -71,7 +74,7 @@ export const useGraphHotkeys = ({selectedId, nodeRects, navigator, actions, hist
                     };
 
                     const direction = dirMap[e.key];
-                    const nextId = navigator.current.findNext(selectedId, direction, nodeRects);
+                    const nextId = spatialNavigator.current.findNext(selectedId, direction, nodeRects);
 
                     if (nextId) {
                         actions.selectNode(nextId);
@@ -82,5 +85,5 @@ export const useGraphHotkeys = ({selectedId, nodeRects, navigator, actions, hist
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [selectedId, nodeRects, actions, history, navigator]); // Зависимости
+    }, [selectedId, nodeRects, actions, history, spatialNavigator]); // Зависимости
 };
