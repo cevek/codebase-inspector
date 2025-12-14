@@ -1,8 +1,9 @@
-import {useState, useCallback, useMemo} from 'react';
+import {useState, useMemo} from 'react';
 import {Id} from '../../../../types';
 import {Graph} from '../../Graph';
 import {Direction, LayoutDirection} from '../../types';
 import {embedActionNodes} from '../../logic/embedActionNodes';
+import {useEvent} from '../../hooks/useEvent';
 
 export interface GraphViewState {
     selectedId: Id | null;
@@ -29,6 +30,7 @@ export const useGraphState = (rawInitialGraph: Graph, initialStateOverrides?: Pa
         ...INITIAL_STATE,
         ...initialStateOverrides,
     }));
+
     const initialGraph = useMemo(
         () => (state.embedSpecialActions ? embedActionNodes(rawInitialGraph) : rawInitialGraph),
         [rawInitialGraph, state.embedSpecialActions],
@@ -37,16 +39,16 @@ export const useGraphState = (rawInitialGraph: Graph, initialStateOverrides?: Pa
     const [history, setHistory] = useState<GraphViewState[]>([]);
     const [future, setFuture] = useState<GraphViewState[]>([]);
 
-    const commit = useCallback((updater: (prev: GraphViewState) => Partial<GraphViewState>) => {
+    const commit = useEvent((updater: (prev: GraphViewState) => Partial<GraphViewState>) => {
         setState((current) => {
             setHistory((prev) => [...prev, current]);
             setFuture([]);
             const changes = updater(current);
             return {...current, ...changes};
         });
-    }, []);
+    });
 
-    const undo = useCallback(() => {
+    const undo = useEvent(() => {
         setHistory((prevHist) => {
             if (prevHist.length === 0) return prevHist;
             const previous = prevHist[prevHist.length - 1];
@@ -56,9 +58,9 @@ export const useGraphState = (rawInitialGraph: Graph, initialStateOverrides?: Pa
             });
             return prevHist.slice(0, -1);
         });
-    }, []);
+    });
 
-    const redo = useCallback(() => {
+    const redo = useEvent(() => {
         setFuture((prevFut) => {
             if (prevFut.length === 0) return prevFut;
             const next = prevFut[0];
@@ -68,92 +70,83 @@ export const useGraphState = (rawInitialGraph: Graph, initialStateOverrides?: Pa
             });
             return prevFut.slice(1);
         });
-    }, []);
+    });
 
-    const actions = {
-        selectNode: useCallback((id: Id | null) => {
-            setState((s) => ({...s, selectedId: id}));
-        }, []),
+    const selectNode = useEvent((id: Id | null) => {
+        setState((s) => ({...s, selectedId: id}));
+    });
 
-        focusNode: useCallback(
-            (id: Id | null) => {
-                commit(() => ({focusId: id, whiteListIds: []}));
-            },
-            [commit],
-        ),
+    const focusNode = useEvent((id: Id | null) => {
+        commit(() => ({focusId: id, whiteListIds: []}));
+    });
 
-        changeLayout: useCallback(
-            (dir: LayoutDirection) => {
-                commit(() => ({layoutDirection: dir}));
-            },
-            [commit],
-        ),
+    const changeLayout = useEvent((dir: LayoutDirection) => {
+        commit(() => ({layoutDirection: dir}));
+    });
 
-        changeEmbedSpecialActions: useCallback(
-            (embedSpecialActions: boolean) => {
-                commit(() => ({embedSpecialActions}));
-            },
-            [commit],
-        ),
+    const changeEmbedSpecialActions = useEvent((embedSpecialActions: boolean) => {
+        commit(() => ({embedSpecialActions}));
+    });
 
-        removeNode: useCallback(
-            (nodeId: Id, dir: Direction) => {
-                commit((currentState) => {
-                    const newWhiteList = new Set(currentState.whiteListIds);
-                    let nodesToCheck: Set<Id> = new Set();
-                    const cluster = initialGraph.clusters.get(nodeId);
+    const removeNode = useEvent((nodeId: Id, dir: Direction) => {
+        commit((currentState) => {
+            const newWhiteList = new Set(currentState.whiteListIds);
+            let nodesToCheck: Set<Id> = new Set();
+            const cluster = initialGraph.clusters.get(nodeId);
 
-                    if (cluster) {
-                        nodesToCheck = new Set(cluster.nodes);
-                    } else {
-                        nodesToCheck = initialGraph.findRecursive(nodeId, dir);
-                    }
+            if (cluster) {
+                nodesToCheck = new Set(cluster.nodes);
+            } else {
+                nodesToCheck = initialGraph.findRecursive(nodeId, dir);
+            }
 
-                    for (const id of nodesToCheck) newWhiteList.delete(id);
-                    newWhiteList.delete(nodeId);
+            for (const id of nodesToCheck) newWhiteList.delete(id);
+            newWhiteList.delete(nodeId);
 
-                    return {
-                        removedIds: [...currentState.removedIds, {id: nodeId, dir}],
-                        whiteListIds: Array.from(newWhiteList),
-                        selectedId: null,
-                    };
-                });
-            },
-            [commit, initialGraph],
-        ),
+            return {
+                removedIds: [...currentState.removedIds, {id: nodeId, dir}],
+                whiteListIds: Array.from(newWhiteList),
+                selectedId: null,
+            };
+        });
+    });
 
-        revealNode: useCallback(
-            (nodeId: Id, dir: Direction) => {
-                const sources =
-                    dir === 'backward' ? initialGraph.findParents(nodeId) : initialGraph.findChildren(nodeId);
-                if (sources.length === 0) return;
-                commit((currentState) => {
-                    const ids = sources.map((v) => (dir === 'backward' ? v.from : v.to));
-                    const newWhiteList = new Set([...currentState.whiteListIds, ...ids]);
-                    return {whiteListIds: Array.from(newWhiteList), selectedId: ids[0] || null};
-                });
-            },
-            [commit, initialGraph],
-        ),
+    const revealNode = useEvent((nodeId: Id, dir: Direction) => {
+        const sources = dir === 'backward' ? initialGraph.findParents(nodeId) : initialGraph.findChildren(nodeId);
+        if (sources.length === 0) return;
+        commit((currentState) => {
+            const ids = sources.map((v) => (dir === 'backward' ? v.from : v.to));
+            const newWhiteList = new Set([...currentState.whiteListIds, ...ids]);
+            return {whiteListIds: Array.from(newWhiteList), selectedId: ids[0] || null};
+        });
+    });
 
-        restoreNode: useCallback(
-            (idToRestore: Id) => {
-                commit((s) => ({removedIds: s.removedIds.filter((item) => item.id !== idToRestore)}));
-            },
-            [commit],
-        ),
+    const restoreNode = useEvent((idToRestore: Id) => {
+        commit((s) => ({removedIds: s.removedIds.filter((item) => item.id !== idToRestore)}));
+    });
 
-        restoreAll: useCallback(() => {
-            commit(() => ({removedIds: []}));
-        }, [commit]),
+    const restoreAll = useEvent(() => {
+        commit(() => ({removedIds: []}));
+    });
 
-        changeGroupByModules: useCallback(
-            (groupByModules: boolean) => {
-                commit(() => ({groupByModules}));
-            },
-            [commit],
-        ),
-    };
+    const changeGroupByModules = useEvent((groupByModules: boolean) => {
+        commit(() => ({groupByModules}));
+    });
+
+    const actions = useMemo(
+        () => ({
+            selectNode,
+            focusNode,
+            changeLayout,
+            changeEmbedSpecialActions,
+            removeNode,
+            revealNode,
+            restoreNode,
+            restoreAll,
+            changeGroupByModules,
+        }),
+        [],
+    );
 
     return {
         state,

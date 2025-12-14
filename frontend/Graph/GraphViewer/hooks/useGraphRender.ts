@@ -7,6 +7,7 @@ import {assignStableIds} from '../utils/assignStableIds';
 import {generateGraphviz} from '../logic/generateGraphviz';
 import {RawSnapshot, createAttributeSnapshot, animateRawAttributes} from '../utils/svgAnimate';
 import {Graphviz} from '@hpcc-js/wasm';
+import {useEvent} from '../../hooks/useEvent';
 const MAX_ANIMATION_HTML_SIZE = 100000;
 
 const graphvizPromise = Graphviz.load();
@@ -32,8 +33,7 @@ export function useGraphRender({
 
     const mapRef = React.useRef<DOMMapping>({domIdToIdMap: new Map(), idToDomIdMap: new Map()});
 
-    // Утилита для получения координат
-    const updateNodeRects = React.useCallback(() => {
+    const updateNodeRects = useEvent(() => {
         if (!containerRef.current || !onNodeRectsChange) return;
 
         const nodeElements = Array.from(containerRef.current.querySelectorAll<SVGGElement>('g.node[id]'));
@@ -55,7 +55,7 @@ export function useGraphRender({
             .filter((r): r is Rect => !!r);
 
         onNodeRectsChange(rects);
-    }, [containerRef, onNodeRectsChange]);
+    });
 
     React.useLayoutEffect(() => {
         let isMounted = true;
