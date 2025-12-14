@@ -71,6 +71,7 @@ export function analyzeComponentUsage(context: AnalyzerContext) {
                 checkImportCall(context, node, componentId);
             }
             if (ts.isIdentifier(node)) {
+                checkUsage(context, node, componentId, 'component');
                 checkUsage(context, node, componentId, 'action');
             }
             ts.forEachChild(node, visit);

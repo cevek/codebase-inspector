@@ -10,7 +10,7 @@ export function getLocation(tsconfigDir: string, node: ts.Node): Loc {
 
     const {line, character} = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
     let module = basename(dirname(fileName));
-    if (fileName.match(/\/(components|containers)\//)) module = 'Components';
+    if (fileName.match(/\/(components|containers|screens|forms|app|layouts)\//)) module = 'Components';
     if (fileName.includes('/common/')) module = 'common/' + module;
 
     let type: Loc['layer'] = null;
