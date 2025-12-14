@@ -1,10 +1,10 @@
 import {Graph} from '../../Graph';
 import {usePersistentState} from '../../hooks/usePersistentState';
-import { Id } from '../../types';
+import {Id} from '../../types';
 
 const ideOptions = [
     {name: 'VSCode', value: 'vscode', link: (url: string) => 'vscode://file/' + url},
-    {name: 'Sublime Text', value: 'sublime', link: (url: string) => 'subl://open/' + url},
+    {name: 'Sublime', value: 'sublime', link: (url: string) => 'subl://open/' + url},
     {
         name: 'WebStorm',
         value: 'webstorm',

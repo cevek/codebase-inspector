@@ -117,17 +117,21 @@ export const Sidebar: React.FC<{
                 <div className={styles.settingsGrid}>
                     <div className={styles.controlGroup}>
                         <label>Layout</label>
-                        <div className={styles.selectWrapper}>
-                            <select
-                                value={layoutDirection}
-                                onChange={(e) => onLayoutChange(e.target.value as LayoutDirection)}
+                        <div className={styles.radioGroup}>
+                            <button
+                                className={`${styles.radioButton} ${layoutDirection === 'TB' ? styles.radioButtonActive : ''}`}
+                                onClick={() => onLayoutChange('TB')}
+                                title="Top to Bottom"
                             >
-                                <option value={'TB'}>Top to bottom</option>
-                                <option value={'LR'}>Left to right</option>
-                            </select>
-                            <span className={styles.selectIcon}>
-                                <Icons.ChevronDown />
-                            </span>
+                                Vertical
+                            </button>
+                            <button
+                                className={`${styles.radioButton} ${layoutDirection === 'LR' ? styles.radioButtonActive : ''}`}
+                                onClick={() => onLayoutChange('LR')}
+                                title="Left to Right"
+                            >
+                                Horizontal
+                            </button>
                         </div>
                     </div>
                     <div className={styles.controlGroup}>
