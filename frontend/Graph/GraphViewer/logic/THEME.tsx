@@ -19,6 +19,9 @@ export const THEME = {
         componentNode: {
             fill: '#f4ffecff',
         },
+        reducerNode: {
+            fill: '#fff3ecff',
+        },
         apiCall: '#00000077',
         layer: '#00000077',
     },

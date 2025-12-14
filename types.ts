@@ -27,11 +27,16 @@ export type Epic = BaseItem & {
     apiCall: ApiCall;
 };
 
+export type Reducer = BaseItem & {
+    type: 'reducer';
+    parentSliceName?: string;
+};
+
 export type Component = BaseItem & {
     type: 'component';
 };
 
-export type Item = Action | Epic | Component;
+export type Item = Action | Epic | Component | Reducer;
 
 export interface Cluster {
     id: Id;

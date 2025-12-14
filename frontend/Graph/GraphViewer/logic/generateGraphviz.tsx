@@ -173,6 +173,16 @@ export function generateGraphviz({
             });
             return `    "${id}" [id="${domId}", label=<${labelHTML}>, shape=note, style="filled,rounded", fillcolor="${THEME.colors.componentNode.fill}", color="#00000044"];`;
         }
+        if (node.type === 'reducer') {
+            const labelHTML = createHtmlLabel({
+                layer: layerHtml,
+                label: node.name,
+                module: groupByModules ? null : node.location.module,
+                hiddenBackwardNodesCount,
+                hiddenForwardNodesCount,
+            });
+            return `    "${id}" [id="${domId}", label=<${labelHTML}>, shape=component, style="filled,rounded", fillcolor="${THEME.colors.reducerNode.fill}", color="#00000044"];`;
+        }
         return `    "${id}" [id="${domId}", label="unknown",  style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="#00000044"];`;
     }
 

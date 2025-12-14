@@ -5,6 +5,7 @@ export function assignStableIds(element: Element, parentId: string = 'root'): vo
         if (element.tagName === 'text') {
             let textContent = element.textContent?.trim() || 'empty';
             textContent = textContent.replace(/📍/g, 'trigger').replace(/✔/g, 'success').replace(/✖/g, 'error');
+            if (textContent.match(/▲|▼/)) textContent = 'up_down_hidden';
             const safeText = textContent.replace(/[^a-zA-Z0-9]/g, '_');
 
             currentId = `${parentId}_text_${safeText}`;
