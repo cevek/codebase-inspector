@@ -44,7 +44,7 @@ export function renormalizeGraphIds(
             if (newTargetId) {
                 newTargets.push(newTargetId);
             } else {
-                console.warn(`⚠️ Warning: Relation points to missing node ID: ${oldTargetId}`);
+                // console.warn(`⚠️ Warning: Relation points to missing node ID: ${oldTargetId}`);
             }
         }
 

@@ -10,7 +10,7 @@ import {Id, Item} from './types';
 import {compressStrIntoUrlSafeString} from './utils/compressStrIntoUrlSafeString';
 import {renormalizeGraphIds} from './utils/renormalizeGraphIds';
 
-const DEV_MODE = true;
+const DEV_MODE = false;
 
 function main() {
     try {
