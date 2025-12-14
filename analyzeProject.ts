@@ -282,6 +282,10 @@ class ReduxProjectAnalyzer {
                     }
                 }
 
+                if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+                    this.checkImportCall(node, componentId);
+                }
+
                 if (ts.isIdentifier(node)) {
                     this.checkUsage(node, componentId, 'action');
                 }
@@ -290,6 +294,41 @@ class ReduxProjectAnalyzer {
             };
 
             ts.forEachChild(body, visit);
+        }
+    }
+
+    private checkImportCall(node: ts.CallExpression, componentId: Id) {
+        const arg = node.arguments[0];
+        if (!arg || !ts.isStringLiteral(arg)) return;
+
+        const symbol = this.checker.getSymbolAtLocation(arg);
+        if (!symbol) return;
+
+        const exports = this.checker.getExportsOfModule(symbol);
+        const defaultExport = exports.find((e) => e.name === 'default');
+
+        if (!defaultExport) return;
+
+        let targetSymbol = defaultExport;
+        if (targetSymbol.flags & ts.SymbolFlags.Alias) {
+            targetSymbol = this.checker.getAliasedSymbol(targetSymbol);
+        }
+
+        const declarations = targetSymbol.getDeclarations();
+        if (!declarations) return;
+
+        for (const declaration of declarations) {
+            let keyNode: ts.Node = declaration;
+            if ((ts.isVariableDeclaration(declaration) || ts.isFunctionDeclaration(declaration)) && declaration.name) {
+                keyNode = declaration.name;
+            }
+
+            const key = getNodeKey(keyNode);
+
+            if (this.components.has(key)) {
+                this.addRelation(componentId, key);
+                return;
+            }
         }
     }
 
@@ -472,6 +511,8 @@ try {
     if (DEV_MODE) {
         const app = 'scheduler';
         const analyzer = new ReduxProjectAnalyzer('/Users/cody/Dev/backoffice/apps/' + app);
+        // const analyzer = new ReduxProjectAnalyzer('./frontend');
+
         analyzer.analyze();
     } else {
         const analyzer = new ReduxProjectAnalyzer('./');

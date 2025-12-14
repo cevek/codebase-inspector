@@ -13,7 +13,8 @@ const createHtmlLabel = ({
     triggerPort,
     successPort,
     errorPort,
-    hiddens,
+    hiddenBackwardNodesCount,
+    hiddenForwardNodesCount,
 }: {
     layer: string;
     label: string;
@@ -21,8 +22,21 @@ const createHtmlLabel = ({
     triggerPort?: boolean | null;
     successPort?: boolean | null;
     errorPort?: boolean | null;
-    hiddens?: string;
-}) => `
+    hiddenBackwardNodesCount?: number;
+    hiddenForwardNodesCount?: number;
+}) => {
+    const hiddensArr: string[] = [];
+    const hiddensTooltipArr: string[] = [];
+    if (hiddenBackwardNodesCount) {
+        hiddensArr.push(`▲${hiddenBackwardNodesCount}`);
+        hiddensTooltipArr.push(`Backward hidden nodes: ${hiddenBackwardNodesCount}`);
+    }
+    if (hiddenForwardNodesCount) {
+        hiddensArr.push(`▼${hiddenForwardNodesCount}`);
+        hiddensTooltipArr.push(`Forward hidden nodes: ${hiddenForwardNodesCount}`);
+    }
+
+    return `
     <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
         <TR>
             ${layer ? `<TD>${layer}</TD>` : ''}
@@ -32,9 +46,16 @@ const createHtmlLabel = ({
             ${successPort ? `<TD PORT="success">✔</TD>` : ''}
             ${errorPort ? `<TD PORT="error">✖</TD>` : ''}
         </TR>
-        ${hiddens ? `<TR><TD colspan="10">${hiddens}</TD></TR>` : ''}
+        ${
+            hiddensArr.length > 0
+                ? `<TR><TD TOOLTIP="${hiddensTooltipArr.join('\n')}" colspan="10"><font color="${
+                      THEME.colors.hidden
+                  }" point-size="10">${hiddensArr.join(' ')}</font></TD></TR>`
+                : ''
+        }
     </TABLE>
 `;
+};
 // ${url ? `<TR><TD COLSPAN="3"><font color="${THEME.colors.apiCall}">${url}</font></TD></TR>` : ''}
 
 export function generateGraphviz({
@@ -79,9 +100,6 @@ export function generateGraphviz({
 
         const hiddenBackwardNodesCount = initialData.findParents2(id).length - data.findParents2(id).length;
         const hiddenForwardNodesCount = initialData.findChildren2(id).length - data.findChildren2(id).length;
-        const hiddensArr: string[] = [];
-        if (hiddenBackwardNodesCount) hiddensArr.push(`▲${hiddenBackwardNodesCount}`);
-        if (hiddenForwardNodesCount) hiddensArr.push(`▼${hiddenForwardNodesCount}`);
 
         if (id === 'getFetchUserEpic') {
             console.log({
@@ -91,11 +109,6 @@ export function generateGraphviz({
                 dataChildren: data.findChildren2(id),
             });
         }
-
-        const hiddensHtml =
-            hiddensArr.length > 0
-                ? `<font point-size="10" color="${THEME.colors.hidden}">${hiddensArr.join(' ')}</font>`
-                : '';
 
         let layerHtml = '';
         if (node.location.layer) layerHtml = `<font color="${THEME.colors.layer}">${node.location.layer}</font> `;
@@ -136,7 +149,8 @@ export function generateGraphviz({
                 triggerPort,
                 successPort,
                 errorPort,
-                hiddens: hiddensHtml,
+                hiddenBackwardNodesCount,
+                hiddenForwardNodesCount,
             });
 
             return `    "${epicId}" [id="${domId}", shape=box, style="filled,rounded", fillcolor="${THEME.colors.epic.fill}", color="#00000044", label=<${label}>];`;
@@ -145,7 +159,8 @@ export function generateGraphviz({
             const labelHTML = createHtmlLabel({
                 layer: layerHtml,
                 label: node.name,
-                hiddens: hiddensHtml,
+                hiddenBackwardNodesCount,
+                hiddenForwardNodesCount,
             });
             return `    "${id}" [id="${domId}", label=<${labelHTML}>, shape=box, style="filled,rounded", fillcolor="${THEME.colors.actionNode.fill}", color="#00000044"];`;
         }
@@ -153,7 +168,8 @@ export function generateGraphviz({
             const labelHTML = createHtmlLabel({
                 layer: layerHtml,
                 label: node.name,
-                hiddens: hiddensHtml,
+                hiddenBackwardNodesCount,
+                hiddenForwardNodesCount,
             });
             return `    "${id}" [id="${domId}", label=<${labelHTML}>, shape=note, style="filled,rounded", fillcolor="${THEME.colors.componentNode.fill}", color="#00000044"];`;
         }

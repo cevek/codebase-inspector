@@ -36,3 +36,4 @@ const Bar6 = React.forwardRef(() => {
 const Bar61 = forwardRef(() => {
     return <div></div>;
 });
+const Bar7 = () => lazy(() => import('./tt2'));

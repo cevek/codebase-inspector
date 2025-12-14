@@ -154,6 +154,8 @@ export const GraphViewer: React.FC<{
         renderGraph();
         reselectMainId();
         reselectSelection();
+        transformComponentRef.current?.centerView();
+
         console.log('redraw graph');
 
         return () => {
@@ -198,7 +200,6 @@ export const GraphViewer: React.FC<{
                 const element = containerRef.current.querySelector(`.${classes.mainNode}`);
                 element?.classList.remove(classes.mainNode);
             }
-            transformComponentRef.current?.centerView();
         }
     }
 
