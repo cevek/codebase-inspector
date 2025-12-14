@@ -1,7 +1,8 @@
-import {useState, useCallback} from 'react';
+import {useState, useCallback, useMemo} from 'react';
 import {Id} from '../../../../types';
 import {Graph} from '../../Graph';
 import {Direction, LayoutDirection} from '../../types';
+import {embedActionNodes} from '../../logic/embedActionNodes';
 
 export interface GraphViewState {
     selectedId: Id | null;
@@ -9,6 +10,8 @@ export interface GraphViewState {
     removedIds: Array<{id: Id; dir: Direction}>;
     whiteListIds: Id[];
     layoutDirection: LayoutDirection;
+    embedSpecialActions: boolean;
+    groupByModules: boolean;
 }
 
 export const INITIAL_STATE: GraphViewState = {
@@ -17,15 +20,19 @@ export const INITIAL_STATE: GraphViewState = {
     removedIds: [],
     whiteListIds: [],
     layoutDirection: 'LR',
+    groupByModules: true,
+    embedSpecialActions: true,
 };
 
-// Добавили второй аргумент `initialStateOverrides`
-export const useGraphState = (initialGraph: Graph, initialStateOverrides?: Partial<GraphViewState>) => {
-    // Инициализируем стейт сразу с учетом данных из URL (синхронно)
+export const useGraphState = (rawInitialGraph: Graph, initialStateOverrides?: Partial<GraphViewState>) => {
     const [state, setState] = useState<GraphViewState>(() => ({
         ...INITIAL_STATE,
         ...initialStateOverrides,
     }));
+    const initialGraph = useMemo(
+        () => (state.embedSpecialActions ? embedActionNodes(rawInitialGraph) : rawInitialGraph),
+        [rawInitialGraph, state.embedSpecialActions],
+    );
 
     const [history, setHistory] = useState<GraphViewState[]>([]);
     const [future, setFuture] = useState<GraphViewState[]>([]);
@@ -82,6 +89,13 @@ export const useGraphState = (initialGraph: Graph, initialStateOverrides?: Parti
             [commit],
         ),
 
+        changeEmbedSpecialActions: useCallback(
+            (embedSpecialActions: boolean) => {
+                commit(() => ({embedSpecialActions}));
+            },
+            [commit],
+        ),
+
         removeNode: useCallback(
             (nodeId: Id, dir: Direction) => {
                 commit((currentState) => {
@@ -132,7 +146,19 @@ export const useGraphState = (initialGraph: Graph, initialStateOverrides?: Parti
         restoreAll: useCallback(() => {
             commit(() => ({removedIds: []}));
         }, [commit]),
+
+        changeGroupByModules: useCallback(
+            (groupByModules: boolean) => {
+                commit(() => ({groupByModules}));
+            },
+            [commit],
+        ),
     };
 
-    return {state, actions, history: {undo, redo, canUndo: history.length > 0, canRedo: future.length > 0}};
+    return {
+        state,
+        actions,
+        initialGraph,
+        history: {undo, redo, canUndo: history.length > 0, canRedo: future.length > 0},
+    };
 };

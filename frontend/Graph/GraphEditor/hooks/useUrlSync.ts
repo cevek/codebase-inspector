@@ -10,24 +10,24 @@ const URL_KEYS = {
     LAYOUT: 'layoutDirection',
     REMOVED: 'removedIds',
     WHITELIST: 'whiteListIds',
-    GROUP_MODULES: 'groupByModules', // UI параметр, но живет в URL
+    GROUP_MODULES: 'groupByModules',
+    EMBED_SPECIAL_ACTIONS: 'embedSpecialActions',
 } as const;
 
 // Тип возвращаемых данных при чтении
 interface UrlState extends Partial<GraphViewState> {
     groupByModules?: boolean;
+    embedSpecialActions?: boolean;
 }
 
 export function useUrlState() {
     return useMemo(() => readUrlState(), []);
 }
-// 2. Логика парсинга (Чтение)
 const readUrlState = (): UrlState => {
     try {
         const hash = window.location.hash.slice(1);
         const params = new URLSearchParams(hash);
 
-        // Хелпер для JSON
         const parseJson = <T>(key: string, defaultValue: T): T => {
             const val = params.get(key);
             if (!val) return defaultValue;
@@ -43,11 +43,11 @@ const readUrlState = (): UrlState => {
             focusId: (params.get(URL_KEYS.FOCUS_ID) as Id) || undefined,
             layoutDirection: (params.get(URL_KEYS.LAYOUT) as LayoutDirection) || undefined,
 
-            // Используем дефолтные значения внутри парсера, чтобы App не думал об этом
             removedIds: parseJson(URL_KEYS.REMOVED, []),
             whiteListIds: parseJson(URL_KEYS.WHITELIST, []),
 
             groupByModules: params.get(URL_KEYS.GROUP_MODULES) === 'true' ? true : undefined,
+            embedSpecialActions: params.get(URL_KEYS.EMBED_SPECIAL_ACTIONS) === 'true' ? true : undefined,
         };
     } catch (e) {
         console.error('Failed to parse URL', e);
@@ -58,10 +58,9 @@ const readUrlState = (): UrlState => {
 // 3. Логика записи (Хук)
 interface UseUrlSyncParams {
     state: GraphViewState;
-    groupByModules: boolean;
 }
 
-export const useUrlSync = ({state, groupByModules}: UseUrlSyncParams) => {
+export const useUrlSync = ({state}: UseUrlSyncParams) => {
     // Защита от записи при первом рендере (пока не произошла гидратация)
     const [isReady, setIsReady] = useState(false);
 
@@ -86,24 +85,17 @@ export const useUrlSync = ({state, groupByModules}: UseUrlSyncParams) => {
             }
         };
 
-        // Используем те же константы KEYS!
         setOrDelete(URL_KEYS.SELECTED_ID, state.selectedId);
         setOrDelete(URL_KEYS.FOCUS_ID, state.focusId);
         setOrDelete(URL_KEYS.LAYOUT, state.layoutDirection);
         setOrDelete(URL_KEYS.REMOVED, state.removedIds);
         setOrDelete(URL_KEYS.WHITELIST, state.whiteListIds);
-
-        // UI State
-        // Если false (дефолт), можно удалять из URL для чистоты, или оставлять 'false'
-        if (groupByModules) {
-            params.set(URL_KEYS.GROUP_MODULES, 'true');
-        } else {
-            params.delete(URL_KEYS.GROUP_MODULES);
-        }
+        setOrDelete(URL_KEYS.GROUP_MODULES, state.groupByModules);
+        setOrDelete(URL_KEYS.EMBED_SPECIAL_ACTIONS, state.embedSpecialActions);
 
         const newHash = params.toString();
         if (window.location.hash.slice(1) !== newHash) {
             window.location.hash = newHash;
         }
-    }, [state, groupByModules, isReady]);
+    }, [state, isReady]);
 };

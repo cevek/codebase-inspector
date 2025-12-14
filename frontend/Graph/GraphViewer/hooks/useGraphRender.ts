@@ -14,7 +14,7 @@ const graphvizPromise = Graphviz.load();
 export function useGraphRender({
     containerRef,
     graph,
-    initialData,
+    initialGraph,
     groupByModules,
     layoutDirection,
     transformComponentRef,
@@ -22,7 +22,7 @@ export function useGraphRender({
 }: {
     containerRef: React.RefObject<HTMLDivElement | null>;
     graph: Graph;
-    initialData: Graph;
+    initialGraph: Graph;
     groupByModules: boolean;
     layoutDirection: LayoutDirection;
     transformComponentRef: React.RefObject<ReactZoomPanPinchContentRef | null>;
@@ -64,10 +64,10 @@ export function useGraphRender({
             try {
                 const graphviz = await graphvizPromise;
                 const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz({
-                    data: graph,
-                    initialData,
+                    graph,
+                    initialGraph,
                     groupByModules,
-                    direction: layoutDirection,
+                    layoutDirection,
                 });
 
                 if (!isMounted) return;
@@ -119,7 +119,7 @@ export function useGraphRender({
         return () => {
             isMounted = false;
         };
-    }, [graph, groupByModules, layoutDirection, initialData, containerRef, transformComponentRef, updateNodeRects]);
+    }, [graph, groupByModules, layoutDirection, initialGraph, containerRef, transformComponentRef, updateNodeRects]);
 
     return {mapRef, renderVersion};
 }

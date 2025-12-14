@@ -16,6 +16,7 @@ export const Sidebar: React.FC<{
     ideOptions: readonly IdeItem[];
     selectedIde: IdeValue;
     searchItems: SearchItem[];
+    embedSpecialActions: boolean;
 
     onFocusNode: (node: Id | null) => void;
     onIdeChange: (ide: IdeValue) => void;
@@ -24,6 +25,7 @@ export const Sidebar: React.FC<{
     onRestoreNode: (node: Id) => void;
     onLayoutChange: (layoutDirection: LayoutDirection) => void;
     onGroupByModulesChange: (groupByModules: boolean) => void;
+    onEmbedSpecialActionsChange: (embedSpecialActions: boolean) => void;
 }> = ({
     path,
     nodeDetails,
@@ -34,6 +36,7 @@ export const Sidebar: React.FC<{
     ideOptions,
     selectedIde,
     searchItems,
+    embedSpecialActions,
     onGroupByModulesChange,
     onFocusNode,
     onIdeChange,
@@ -41,6 +44,7 @@ export const Sidebar: React.FC<{
     onRestoreAll,
     onRestoreNode,
     onLayoutChange,
+    onEmbedSpecialActionsChange,
 }) => {
     return (
         <aside className={styles.sidebar}>
@@ -150,6 +154,16 @@ export const Sidebar: React.FC<{
                             onChange={(e) => onGroupByModulesChange(e.target.checked)}
                         />{' '}
                         Group by modules
+                    </label>
+                </div>
+                <div className={styles.controlGroup}>
+                    <label style={{display: 'flex', alignItems: 'center', gap: 5}}>
+                        <input
+                            type="checkbox"
+                            checked={embedSpecialActions}
+                            onChange={(e) => onEmbedSpecialActionsChange(e.target.checked)}
+                        />{' '}
+                        Embed special actions
                     </label>
                 </div>
             </div>

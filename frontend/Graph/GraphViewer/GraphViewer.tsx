@@ -6,7 +6,7 @@ import {Graph} from '../Graph';
 import {LayoutDirection} from '../types';
 import classes from './GraphViewer.module.css';
 import {useIgnoreClickOnDrag} from './hooks/useIgnoreDraggin';
-import {ContextMenuItem, Rect} from './types';
+import {ContextMenuCb, ContextMenuItem, Rect} from './types';
 import {useGraphSelection} from './hooks/useGraphSelection';
 import {useGraphRender} from './hooks/useGraphRender';
 
@@ -14,20 +14,20 @@ const MENU_ID = 'graph_context_menu';
 
 export const GraphViewer: React.FC<{
     graph: Graph;
-    initialData: Graph;
+    initialGraph: Graph;
     selectedId: Id | null;
     mainId: Id | null;
     onSelect?: (id: Id | null) => void;
     onDoubleClick?: (id: Id) => void;
     groupByModules: boolean;
-    onContextMenuOpen?: (id: Id) => ContextMenuItem[];
+    onContextMenuOpen?: ContextMenuCb;
     layoutDirection?: LayoutDirection;
     onNodeRectsChange?: (rects: Rect[]) => void;
 }> = ({
     graph,
-    initialData,
     selectedId,
     mainId,
+    initialGraph,
     onContextMenuOpen,
     onSelect,
     onDoubleClick,
@@ -56,7 +56,7 @@ export const GraphViewer: React.FC<{
     const {mapRef, renderVersion} = useGraphRender({
         containerRef,
         graph,
-        initialData,
+        initialGraph,
         groupByModules,
         layoutDirection,
         transformComponentRef,

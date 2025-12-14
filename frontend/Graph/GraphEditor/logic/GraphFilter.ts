@@ -1,6 +1,6 @@
 import {Id} from '../../../../types';
 import {Graph} from '../../Graph';
-import { embedActionNodes } from '../../logic/embedActionNodes';
+import {embedActionNodes} from '../../logic/embedActionNodes';
 import {Direction} from '../../types';
 
 export type Removing = {id: Id; dir: Direction};
@@ -16,7 +16,6 @@ export class GraphFilter {
         const {removedIds, whiteListIds, focusId} = options;
 
         const newGraph = initialGraph.clone();
-        embedActionNodes(newGraph);
 
         this.applyRemovals(newGraph, initialGraph, removedIds, whiteListIds);
 

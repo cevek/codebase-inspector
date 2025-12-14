@@ -65,15 +65,15 @@ const createHtmlLabel = ({
 };
 
 export function generateGraphviz({
-    data,
-    initialData,
+    graph,
+    initialGraph,
     groupByModules,
-    direction = 'TB',
+    layoutDirection = 'TB',
 }: {
-    data: Graph;
-    initialData: Graph;
+    graph: Graph;
+    initialGraph: Graph;
     groupByModules: boolean;
-    direction?: 'TB' | 'LR';
+    layoutDirection?: 'TB' | 'LR';
 }) {
     const domIdToIdMap = new Map<string, Id>();
     const idToDomIdMap = new Map<Id, string>();
@@ -83,7 +83,7 @@ export function generateGraphviz({
 
     lines.push('digraph G {');
     lines.push('  compound=true;');
-    lines.push(`  rankdir=${direction};`);
+    lines.push(`  rankdir=${layoutDirection};`);
     lines.push(`  graph [fontname = "${THEME.font}", fontsize = ${THEME.fontSize.clusterLabel}];`);
     lines.push(`  node [fontname="${THEME.font}", fontsize=${THEME.fontSize.nodeLabel}];`);
     lines.push(`  edge [color="${THEME.colors.edge}"];\n`);
@@ -98,26 +98,26 @@ export function generateGraphviz({
     }
 
     function renderNode(id: Id): string {
-        const node = data.nodes.get(id);
+        const node = graph.nodes.get(id);
         if (!node) return '';
 
         renderedNodeIds.add(id);
         const domId = registerDomId(id);
 
-        const hiddenBackwardNodesCount = initialData.findParents2(id).length - data.findParents2(id).length;
-        const hiddenForwardNodesCount = initialData.findChildren2(id).length - data.findChildren2(id).length;
+        const hiddenBackwardNodesCount = initialGraph.findParents2(id).length - graph.findParents2(id).length;
+        const hiddenForwardNodesCount = initialGraph.findChildren2(id).length - graph.findChildren2(id).length;
 
         let layerHtml = '';
         if (node.location.layer) layerHtml = `<font color="${THEME.colors.layer}">${node.location.layer}</font> `;
 
         if (node.type === 'epic') {
             const epicId = id;
-            const reverseRelations = data.reverseRelationsMap.get(epicId) ?? [];
-            const relations = data.relationsMap.get(epicId) ?? [];
+            const reverseRelations = graph.reverseRelationsMap.get(epicId) ?? [];
+            const relations = graph.relationsMap.get(epicId) ?? [];
             const [req] = node.apiCall.requests ?? [];
             const triggerPort = Boolean(
                 reverseRelations.some((relation) =>
-                    data.portMappings.some(
+                    graph.portMappings.some(
                         (pm) =>
                             pm.relation === relation && (pm.toPortName === 'trigger' || pm.fromPortName === 'trigger'),
                     ),
@@ -125,7 +125,7 @@ export function generateGraphviz({
             );
             const successPort = Boolean(
                 relations.some((relation) =>
-                    data.portMappings.some(
+                    graph.portMappings.some(
                         (pm) =>
                             pm.relation === relation && (pm.toPortName === 'success' || pm.fromPortName === 'success'),
                     ),
@@ -133,7 +133,7 @@ export function generateGraphviz({
             );
             const errorPort = Boolean(
                 relations.some((relation) =>
-                    data.portMappings.some(
+                    graph.portMappings.some(
                         (pm) => pm.relation === relation && (pm.toPortName === 'error' || pm.fromPortName === 'error'),
                     ),
                 ),
@@ -191,13 +191,13 @@ export function generateGraphviz({
             const nodeStr = renderNode(nodeId);
             if (nodeStr) lines.push(nodeStr);
         });
-        cluster.subClusters?.forEach((sub) => traverseCluster(data.clusters.get(sub)!));
+        cluster.subClusters?.forEach((sub) => traverseCluster(graph.clusters.get(sub)!));
         lines.push('  }\n');
     }
 
-    if (groupByModules) data.clusters.forEach(traverseCluster);
+    if (groupByModules) graph.clusters.forEach(traverseCluster);
 
-    for (const id of data.nodes.keys()) {
+    for (const id of graph.nodes.keys()) {
         if (!renderedNodeIds.has(id)) {
             const nodeStr = renderNode(id);
             if (nodeStr) lines.push(nodeStr);
@@ -205,9 +205,9 @@ export function generateGraphviz({
     }
 
     lines.push('\n  /* Relationships */');
-    for (const relation of data.relations) {
-        const fromPortName = data.portMappings.find((pm) => pm.relation === relation)?.fromPortName ?? null;
-        const toPortName = data.portMappings.find((pm) => pm.relation === relation)?.toPortName ?? null;
+    for (const relation of graph.relations) {
+        const fromPortName = graph.portMappings.find((pm) => pm.relation === relation)?.fromPortName ?? null;
+        const toPortName = graph.portMappings.find((pm) => pm.relation === relation)?.toPortName ?? null;
 
         const from = transformId(relation.from, fromPortName);
         const to = transformId(relation.to, toPortName);

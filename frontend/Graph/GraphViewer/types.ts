@@ -1,5 +1,4 @@
-import { Id } from '../../../types';
-
+import {Id} from '../../../types';
 
 export interface Rect {
     id: Id;
@@ -9,7 +8,8 @@ export interface Rect {
     top: number;
     right: number;
     bottom: number;
-}export type ContextMenuCb = (id: Id) => ContextMenuItem[];
+}
+export type ContextMenuCb = (id: Id) => ContextMenuItem[];
 export interface DOMMapping {
     domIdToIdMap: Map<string, Id>;
     idToDomIdMap: Map<Id, string>;
@@ -20,4 +20,3 @@ export type ContextMenuItem = {
     hotkey?: string[];
     onClick: () => void;
 };
-

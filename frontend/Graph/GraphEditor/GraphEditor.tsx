@@ -3,18 +3,17 @@ import 'react-contexify/ReactContexify.css';
 
 import {Graph} from '../Graph';
 import {GraphViewer} from '../GraphViewer/GraphViewer';
-import { Rect } from '../GraphViewer/types';
+import {Rect} from '../GraphViewer/types';
 import {Sidebar} from '../Sidebar/Sidebar';
 
+import {GraphFormatter} from '../utils/formatters';
 import {useGraphContextMenu} from './hooks/useGraphContextMenu';
 import {useGraphHotkeys} from './hooks/useGraphHotkeys';
 import {useGraphState} from './hooks/useGraphState';
 import {useIde} from './hooks/useIde';
-import {usePersistentState} from '../hooks/usePersistentState';
+import {useUrlState, useUrlSync} from './hooks/useUrlSync';
 import {GraphFilter} from './logic/GraphFilter';
 import {SpatialNavigator} from './logic/SpatialNavigator';
-import {GraphFormatter} from '../utils/formatters';
-import {useUrlState, useUrlSync} from './hooks/useUrlSync';
 
 /*
 
@@ -33,33 +32,24 @@ src/
 
 */
 
-export const GraphEditor: React.FC<{data: Graph}> = ({data: initialData}) => {
+export const GraphEditor: React.FC<{data: Graph}> = ({data: rawInitialGraph}) => {
     const initialUrlData = useUrlState();
-    const {state, actions, history} = useGraphState(initialData, initialUrlData);
 
-    // 2. Persistent UI Settings
-    const [groupByModules, setGroupByModules] = usePersistentState<boolean>(
-        {key: 'groupByModules'},
-        initialUrlData.groupByModules ?? false,
-    );
+    const {state, actions, history, initialGraph} = useGraphState(rawInitialGraph, initialUrlData);
 
-    // 3. Infrastructure: URL Sync
-    useUrlSync({state, groupByModules});
+    useUrlSync({state});
 
-    // 4. Domain Logic: Filtering
-    const graphData = useMemo(() => {
-        return GraphFilter.apply(initialData, {
+    const filteredGraph = useMemo(() => {
+        return GraphFilter.apply(initialGraph, {
             removedIds: state.removedIds,
             whiteListIds: state.whiteListIds,
             focusId: state.focusId,
         });
-    }, [initialData, state.removedIds, state.whiteListIds, state.focusId]);
+    }, [initialGraph, state.removedIds, state.whiteListIds, state.focusId]);
 
-    // 5. UI: Navigation & Helpers
     const navigator = useRef(new SpatialNavigator());
     const [nodeRects, setNodeRects] = useState<Rect[]>([]);
 
-    // Подключаем хоткеи (Вся логика клавиатуры ушла сюда)
     useGraphHotkeys({
         selectedId: state.selectedId,
         nodeRects,
@@ -68,24 +58,20 @@ export const GraphEditor: React.FC<{data: Graph}> = ({data: initialData}) => {
         history,
     });
 
-    // Подключаем контекстное меню
     const handleContextMenuOpen = useGraphContextMenu(actions);
 
-    // Подключаем IDE интеграцию
-    const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(graphData);
+    const {selectedIde, setSelectedIde, ideOptions, handleOpenFileInIde} = useIde(filteredGraph);
 
-    // Сброс навигатора при клике мышкой
     useEffect(() => {
         const handleMouseClick = () => navigator.current.reset();
         document.addEventListener('mousedown', handleMouseClick);
         return () => document.removeEventListener('mousedown', handleMouseClick);
     }, []);
 
-    // 6. View Helpers (Sidebar Props Preparation)
     const sidebarPath = state.selectedId
         ? (
-              GraphFormatter.nodeName(initialData, state.selectedId, false) ??
-              GraphFormatter.clusterName(initialData, state.selectedId, false) ??
+              GraphFormatter.nodeName(initialGraph, state.selectedId, false) ??
+              GraphFormatter.clusterName(initialGraph, state.selectedId, false) ??
               state.selectedId
           ).split('/')
         : null;
@@ -94,30 +80,30 @@ export const GraphEditor: React.FC<{data: Graph}> = ({data: initialData}) => {
         .map(({id, dir}) => ({
             id,
             dir,
-            name: GraphFormatter.displayName(initialData, id),
+            name: GraphFormatter.displayName(initialGraph, id),
         }))
         .reverse();
 
     const searchItems = useMemo(
         () =>
-            [...initialData.nodes.entries()].map(([id, node]) => ({
+            [...initialGraph.nodes.entries()].map(([id, node]) => ({
                 fileName: node.location.url,
                 module: node.location.module,
                 name: node.name,
                 id,
             })),
-        [initialData],
+        [initialGraph],
     );
 
     return (
         <div style={{width: '100%', height: '100%'}}>
             <div onClick={() => actions.selectNode(null)}>
                 <GraphViewer
-                    initialData={initialData}
-                    graph={graphData}
+                    initialGraph={initialGraph}
+                    graph={filteredGraph}
                     selectedId={state.selectedId}
                     layoutDirection={state.layoutDirection}
-                    groupByModules={groupByModules}
+                    groupByModules={state.groupByModules}
                     mainId={state.focusId}
                     onSelect={actions.selectNode}
                     onDoubleClick={handleOpenFileInIde}
@@ -140,8 +126,10 @@ export const GraphEditor: React.FC<{data: Graph}> = ({data: initialData}) => {
                 ideOptions={ideOptions}
                 selectedIde={selectedIde}
                 onIdeChange={setSelectedIde}
-                groupByModules={groupByModules}
-                onGroupByModulesChange={setGroupByModules}
+                groupByModules={state.groupByModules}
+                onGroupByModulesChange={actions.changeGroupByModules}
+                embedSpecialActions={state.embedSpecialActions}
+                onEmbedSpecialActionsChange={actions.changeEmbedSpecialActions}
             />
         </div>
     );
