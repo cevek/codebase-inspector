@@ -41,7 +41,7 @@ export const useGraphHotkeys = ({selectedId, nodeRects, spatialNavigator, action
                 return;
             }
 
-            // --- 2. Действия с узлом (Enter, Backspace) ---
+            // --- 2. Handle selected node (Enter, Backspace) ---
             if (selectedId) {
                 if (e.key === 'Enter') {
                     actions.focusNode(selectedId);
@@ -55,17 +55,17 @@ export const useGraphHotkeys = ({selectedId, nodeRects, spatialNavigator, action
                 }
             }
 
-            // --- 3. Навигация (Стрелки) ---
+            // --- 3. Handle navigation (Arrow keys) ---
             if (selectedId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                 e.preventDefault();
                 const isReveal = e.ctrlKey || e.metaKey || e.shiftKey;
 
                 if (isReveal) {
-                    // Reveal logic (Раскрытие связей)
+                    // Reveal logic (Reveal connections)
                     if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') actions.revealNode(selectedId, 'backward');
                     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') actions.revealNode(selectedId, 'forward');
                 } else {
-                    // Move logic (Геометрическая навигация)
+                    // Move logic (Geometric navigation)
                     const dirMap: Record<string, ArrowDirection> = {
                         ArrowUp: 'up',
                         ArrowDown: 'down',
@@ -85,5 +85,5 @@ export const useGraphHotkeys = ({selectedId, nodeRects, spatialNavigator, action
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [selectedId, nodeRects, actions, history, spatialNavigator]); // Зависимости
+    }, [selectedId, nodeRects, actions, history, spatialNavigator]);
 };

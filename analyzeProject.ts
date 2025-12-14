@@ -505,7 +505,7 @@ class EpicBodyAnalyzer {
     }
 }
 
-const DEV_MODE = true;
+const DEV_MODE = false;
 try {
     // for (const app of readdirSync('/Users/cody/Dev/backoffice/apps/')) {
     if (DEV_MODE) {

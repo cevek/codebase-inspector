@@ -77,14 +77,14 @@ export function useGraphRender({
                 const container = containerRef.current;
                 if (!container) return;
 
-                // Логика снапшотов для анимации
+                // Logic for snapshots to animate
                 let snapshot: RawSnapshot | undefined;
                 const currentSvg = container.firstElementChild as SVGSVGElement;
                 if (currentSvg && container.innerHTML.length < MAX_ANIMATION_HTML_SIZE) {
                     snapshot = createAttributeSnapshot(currentSvg);
                 }
 
-                // Вставка нового SVG
+                // Insert new SVG
                 container.innerHTML = svgString;
                 const newSvg = container.firstElementChild as SVGSVGElement;
 
@@ -95,7 +95,7 @@ export function useGraphRender({
                 assignStableIds(newSvg);
                 newSvg.querySelectorAll('title').forEach((el) => el.remove());
 
-                // Анимация или просто показ
+                // Animation or just show
                 if (snapshot) {
                     newSvg.style.opacity = '0';
                     await animateRawAttributes(newSvg, snapshot);
@@ -103,7 +103,7 @@ export function useGraphRender({
                     newSvg.style.opacity = '1';
                 } else {
                     newSvg.style.opacity = '1';
-                    // setTimeout нужен, чтобы DOM успел обновиться перед центрированием
+                    // setTimeout needed to let DOM update before centering
                     setTimeout(() => transformComponentRef.current?.centerView(), 0);
                 }
                 if (isMounted) {

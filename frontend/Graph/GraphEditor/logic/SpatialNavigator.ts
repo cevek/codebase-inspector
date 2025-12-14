@@ -15,9 +15,6 @@ export class SpatialNavigator {
         this.lastMove = null;
     }
 
-    /**
-     * Основной метод поиска следующего узла
-     */
     public findNext(currentId: Id, direction: ArrowDirection, rects: Rect[]): Id | undefined {
         const currentRect = rects.find((r) => r.id === currentId);
         if (!currentRect) return undefined;

@@ -86,7 +86,7 @@
 /* --- Focus Card --- */
 .focusCard {
     background: var(--focus-bg);
-    border: 1px solid #dbeafe; /* Чуть темнее фона */
+    border: 1px solid #dbeafe;
     border-radius: 8px;
     padding: 12px;
 }
@@ -176,7 +176,7 @@
     background-color: #fff;
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 8px 24px 8px 10px; /* Место для стрелки справа */
+    padding: 8px 24px 8px 10px; 
     font-size: 13px;
     color: var(--text-primary);
     cursor: pointer;
@@ -337,7 +337,6 @@
     color: var(--text-tertiary);
 }
 
-/* Стилизация под "клавиши" */
 .kbd {
     display: inline-block;
     padding: 0px 6px;

@@ -17,11 +17,11 @@ export const GraphFormatter = {
         return prettify ? prettifyName(cluster.name) : cluster.name;
     },
 
-    // Хелпер для сайдбара, чтобы не мапить вручную
     displayName: (graph: Graph, id: Id): string => {
         return GraphFormatter.nodeName(graph, id, true) ?? GraphFormatter.clusterName(graph, id, true) ?? id;
     },
 };
-export function prettifyName(name: string) {
+
+function prettifyName(name: string) {
     return name.replaceAll('/', ' › ');
 }

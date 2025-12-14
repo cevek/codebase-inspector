@@ -4,7 +4,7 @@ import {DOMMapping} from '../types';
 
 export function useGraphSelection(
     containerRef: React.RefObject<HTMLDivElement | null>,
-    mapRef: React.MutableRefObject<DOMMapping>,
+    mapRef: React.RefObject<DOMMapping>,
     selectedId: Id | null,
     mainId: Id | null,
     renderVersion: number,
@@ -21,15 +21,15 @@ export function useGraphSelection(
     React.useEffect(() => {
         if (!containerRef.current) return;
 
-        // Сначала чистим всё, чтобы не осталось хвостов от старых рендеров
+        // Clear everything to avoid leftovers from old renders
         clearClasses('.' + classes.selected, classes.selected);
         clearClasses('.' + classes.selectedEdge, classes.selectedEdge);
 
         if (selectedId) {
-            // Важно: mapRef.current уже обновлен в useGraphRender перед setRenderVersion
+            // mapRef.current already updated in useGraphRender before setRenderVersion
             const domId = mapRef.current.idToDomIdMap.get(selectedId);
 
-            // Если граф перестроился, DOM узлы новые, ищем их заново
+            // If the graph has been rebuilt, the DOM nodes are new, so we search for them again
             const element = containerRef.current.querySelector(`#${domId}`);
             element?.classList.add(classes.selected);
 
@@ -47,11 +47,8 @@ export function useGraphSelection(
             const edges = containerRef.current.querySelectorAll(selectors);
             edges.forEach((edge) => edge.classList.add(classes.selectedEdge));
         }
-        // ДОБАВИЛИ renderVersion в зависимости.
-        // Теперь эффект сработает, когда изменится ID ИЛИ когда граф закончит рисоваться.
     }, [selectedId, renderVersion, containerRef]);
 
-    // То же самое для MainId
     React.useEffect(() => {
         if (!containerRef.current) return;
         const oldMain = containerRef.current.querySelector('.' + classes.mainNode);

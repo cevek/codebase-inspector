@@ -10,5 +10,5 @@
         "removeComments": true,
         "noFallthroughCasesInSwitch": true
     },
-    "exclude": ["./frontend"]
+    "exclude": ["./frontend", "./type-explorer"]
 }
