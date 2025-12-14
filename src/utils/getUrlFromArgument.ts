@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
-import { printer } from './ast';
 
+export const printer = ts.createPrinter({newLine: ts.NewLineKind.LineFeed, omitTrailingSemicolon: true});
 export function getUrlFromArgument(arg: ts.Node, sourceFile: ts.SourceFile): string {
     if (!arg) return 'undefined';
     if (ts.isStringLiteral(arg)) {
