@@ -9,8 +9,8 @@ import {useIgnoreClickOnDrag} from './hooks/useIgnoreDraggin';
 import {assignStableIds} from './utils/assignStableIds';
 import {generateGraphviz} from './utils/generateGraphviz';
 import {animateRawAttributes, createAttributeSnapshot, RawSnapshot} from './utils/svgAnimate';
-const graphviz = await Graphviz.load();
-export type LayoutDirection = 'TB' | 'LR';
+import {LayoutDirection} from './types';
+const graphvizPromise = Graphviz.load();
 
 export type ContextMenuItem = {
     label: string;
@@ -30,6 +30,185 @@ export interface Rect {
     top: number;
     right: number;
     bottom: number;
+}
+interface DOMMapping {
+    domIdToIdMap: Map<string, Id>;
+    idToDomIdMap: Map<Id, string>;
+}
+
+const MAX_ANIMATION_HTML_SIZE = 100000; // Избавляемся от магических чисел
+
+function useGraphRender({
+    containerRef,
+    graph,
+    initialData,
+    groupByModules,
+    layoutDirection,
+    transformComponentRef,
+    onNodeRectsChange,
+}: {
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    graph: Graph;
+    initialData: Graph;
+    groupByModules: boolean;
+    layoutDirection: LayoutDirection;
+    transformComponentRef: React.RefObject<ReactZoomPanPinchContentRef | null>;
+    onNodeRectsChange?: (rects: Rect[]) => void;
+}) {
+    const [renderVersion, setRenderVersion] = React.useState(0);
+
+    const mapRef = React.useRef<DOMMapping>({domIdToIdMap: new Map(), idToDomIdMap: new Map()});
+
+    // Утилита для получения координат
+    const updateNodeRects = React.useCallback(() => {
+        if (!containerRef.current || !onNodeRectsChange) return;
+
+        const nodeElements = Array.from(containerRef.current.querySelectorAll<SVGGElement>('g.node[id]'));
+        const rects = nodeElements
+            .map<Rect | null>((el) => {
+                const id = mapRef.current.domIdToIdMap.get(el.id);
+                if (!id) return null;
+                const r = el.getBoundingClientRect();
+                return {
+                    id,
+                    cx: r.left + r.width / 2,
+                    cy: r.top + r.height / 2,
+                    left: r.left,
+                    top: r.top,
+                    right: r.right,
+                    bottom: r.bottom,
+                };
+            })
+            .filter((r): r is Rect => !!r);
+
+        onNodeRectsChange(rects);
+    }, [containerRef, onNodeRectsChange]);
+
+    React.useLayoutEffect(() => {
+        let isMounted = true;
+
+        const render = async () => {
+            try {
+                const graphviz = await graphvizPromise;
+                const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz({
+                    data: graph,
+                    initialData,
+                    groupByModules,
+                    direction: layoutDirection,
+                });
+
+                if (!isMounted) return;
+
+                mapRef.current = {domIdToIdMap, idToDomIdMap};
+                const svgString = graphviz.layout(dotString, 'svg', 'dot');
+                const container = containerRef.current;
+                if (!container) return;
+
+                // Логика снапшотов для анимации
+                let snapshot: RawSnapshot | undefined;
+                const currentSvg = container.firstElementChild as SVGSVGElement;
+                if (currentSvg && container.innerHTML.length < MAX_ANIMATION_HTML_SIZE) {
+                    snapshot = createAttributeSnapshot(currentSvg);
+                }
+
+                // Вставка нового SVG
+                container.innerHTML = svgString;
+                const newSvg = container.firstElementChild as SVGSVGElement;
+
+                updateNodeRects();
+
+                if (!newSvg) return;
+
+                assignStableIds(newSvg);
+                newSvg.querySelectorAll('title').forEach((el) => el.remove());
+
+                // Анимация или просто показ
+                if (snapshot) {
+                    newSvg.style.opacity = '0';
+                    await animateRawAttributes(newSvg, snapshot);
+                    transformComponentRef.current?.centerView();
+                    newSvg.style.opacity = '1';
+                } else {
+                    newSvg.style.opacity = '1';
+                    // setTimeout нужен, чтобы DOM успел обновиться перед центрированием
+                    setTimeout(() => transformComponentRef.current?.centerView(), 0);
+                }
+                if (isMounted) {
+                    setRenderVersion((v) => v + 1);
+                }
+            } catch (err) {
+                console.error('Graph render failed:', err);
+            }
+        };
+
+        render();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [graph, groupByModules, layoutDirection, initialData, containerRef, transformComponentRef, updateNodeRects]);
+
+    return {mapRef, renderVersion};
+}
+
+// --- 3. Хук для управления выделением (Selection Logic) ---
+
+function useGraphSelection(
+    containerRef: React.RefObject<HTMLDivElement | null>,
+    mapRef: React.MutableRefObject<DOMMapping>,
+    selectedId: Id | null,
+    mainId: Id | null,
+    renderVersion: number,
+) {
+    const clearClasses = (selector: string, className: string) => {
+        containerRef.current?.querySelectorAll(selector).forEach((el) => el.classList.remove(className));
+    };
+
+    React.useEffect(() => {
+        if (!containerRef.current) return;
+
+        // Сначала чистим всё, чтобы не осталось хвостов от старых рендеров
+        clearClasses('.' + classes.selected, classes.selected);
+        clearClasses('.' + classes.selectedEdge, classes.selectedEdge);
+
+        if (selectedId) {
+            // Важно: mapRef.current уже обновлен в useGraphRender перед setRenderVersion
+            const domId = mapRef.current.idToDomIdMap.get(selectedId);
+
+            // Если граф перестроился, DOM узлы новые, ищем их заново
+            const element = containerRef.current.querySelector(`#${domId}`);
+            element?.classList.add(classes.selected);
+
+            const selectors = [
+                `[id^="${selectedId}__"]`,
+                `[id^="${selectedId}_trigger__"]`,
+                `[id^="${selectedId}_success__"]`,
+                `[id^="${selectedId}_error__"]`,
+                `[id$="__${selectedId}"]`,
+                `[id$="__${selectedId}_trigger"]`,
+                `[id$="__${selectedId}_success"]`,
+                `[id$="__${selectedId}_error"]`,
+            ].join(', ');
+
+            const edges = containerRef.current.querySelectorAll(selectors);
+            edges.forEach((edge) => edge.classList.add(classes.selectedEdge));
+        }
+        // ДОБАВИЛИ renderVersion в зависимости.
+        // Теперь эффект сработает, когда изменится ID ИЛИ когда граф закончит рисоваться.
+    }, [selectedId, renderVersion, containerRef]);
+
+    // То же самое для MainId
+    React.useEffect(() => {
+        if (!containerRef.current) return;
+        const oldMain = containerRef.current.querySelector('.' + classes.mainNode);
+        oldMain?.classList.remove(classes.mainNode);
+
+        if (mainId) {
+            const domId = mapRef.current.idToDomIdMap.get(mainId);
+            const element = containerRef.current.querySelector(`#${domId}`);
+            element?.classList.add(classes.mainNode);
+        }
+    }, [mainId, renderVersion, containerRef]);
 }
 
 export const GraphViewer: React.FC<{
@@ -56,13 +235,7 @@ export const GraphViewer: React.FC<{
     layoutDirection = 'TB',
 }) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const mapRef = React.useRef<{
-        domIdToIdMap: Map<string, Id>;
-        idToDomIdMap: Map<Id, string>;
-    }>({
-        domIdToIdMap: new Map(),
-        idToDomIdMap: new Map(),
-    });
+
     const {show: showContextMenu, hideAll: hideContextMenu} = useContextMenu({id: MENU_ID});
     function handleContextMenu(e: React.MouseEvent) {
         const target = e.target as HTMLElement;
@@ -76,133 +249,22 @@ export const GraphViewer: React.FC<{
             e.preventDefault();
         }
     }
-    const getGraphNodesRects = React.useCallback((): Rect[] => {
-        if (!containerRef.current) return [];
-        const nodeElements = Array.from(containerRef.current.querySelectorAll<SVGGElement>('g.node[id]'));
-        return nodeElements
-            .map<Rect | null>((el) => {
-                const id = mapRef.current.domIdToIdMap.get(el.id);
-                if (!id) return null;
-                const rect = el.getBoundingClientRect();
-                return {
-                    id,
-                    cx: rect.left + rect.width / 2,
-                    cy: rect.top + rect.height / 2,
-                    left: rect.left,
-                    top: rect.top,
-                    right: rect.right,
-                    bottom: rect.bottom,
-                };
-            })
-            .filter((r): r is Rect => !!r);
-    }, [containerRef]);
     const [menuItems, setMenuItems] = React.useState<ContextMenuItem[]>([]);
     const transformComponentRef = React.useRef<ReactZoomPanPinchContentRef>(null);
 
-    React.useLayoutEffect(() => {
-        let isMounted = true;
+    // Подключаем логику рендеринга
+    const {mapRef, renderVersion} = useGraphRender({
+        containerRef,
+        graph,
+        initialData,
+        groupByModules,
+        layoutDirection,
+        transformComponentRef,
+        onNodeRectsChange,
+    });
 
-        const renderGraph = () => {
-            try {
-                const {dotString, domIdToIdMap, idToDomIdMap} = generateGraphviz({
-                    data: graph,
-                    initialData,
-                    groupByModules,
-                    direction: layoutDirection,
-                });
-
-                if (!isMounted) return;
-
-                mapRef.current = {domIdToIdMap, idToDomIdMap};
-
-                const svgString = graphviz.layout(dotString, 'svg', 'dot');
-                const container = containerRef.current;
-                if (!container) return;
-
-                let snapshot: RawSnapshot | undefined;
-                const currentSvg = container.firstElementChild as SVGSVGElement;
-
-                if (currentSvg && container.innerHTML.length < 100000) {
-                    snapshot = createAttributeSnapshot(currentSvg);
-                }
-
-                container.innerHTML = svgString;
-                const newSvg = container.firstElementChild as SVGSVGElement;
-                const rects = getGraphNodesRects();
-                onNodeRectsChange?.(rects);
-
-                if (snapshot && newSvg) {
-                    newSvg.style.opacity = '0';
-                }
-
-                if (newSvg) {
-                    assignStableIds(newSvg);
-                    newSvg.querySelectorAll('title').forEach((el) => el.remove());
-                }
-
-                if (snapshot && newSvg) {
-                    animateRawAttributes(newSvg, snapshot).then(() => {
-                        transformComponentRef.current?.centerView();
-                    });
-                } else if (newSvg) {
-                    newSvg.style.opacity = '1';
-                    setTimeout(() => transformComponentRef.current?.centerView());
-                }
-            } catch (err) {
-                console.error('Graph render failed:', err);
-            }
-        };
-
-        renderGraph();
-        reselectMainId();
-        reselectSelection();
-
-        console.log('redraw graph');
-
-        return () => {
-            isMounted = false;
-        };
-    }, [graph, groupByModules, layoutDirection]);
-
-    React.useEffect(() => {
-        console.log('effect reselectSelection', selectedId);
-        reselectSelection();
-    }, [selectedId]);
-
-    React.useEffect(() => {
-        reselectMainId();
-    }, [mainId]);
-
-    function reselectSelection() {
-        if (containerRef.current) {
-            const previouslySelected = containerRef.current.querySelectorAll('.' + classes.selected);
-            previouslySelected.forEach((el) => el.classList.remove(classes.selected));
-            const previouslySelectedEdges = containerRef.current.querySelectorAll('.' + classes.selectedEdge);
-            previouslySelectedEdges.forEach((el) => el.classList.remove(classes.selectedEdge));
-        }
-        if (selectedId && containerRef.current) {
-            const element = containerRef.current.querySelector(`#${mapRef.current?.idToDomIdMap.get(selectedId)}`);
-            element?.classList.add(classes.selected);
-
-            const edges = containerRef.current.querySelectorAll(
-                `[id^="${selectedId}__"], [id^="${selectedId}_trigger__"],[id^="${selectedId}_success__"], [id^="${selectedId}_error__"], [id$="__${selectedId}"], [id$="__${selectedId}_trigger"],[id$="__${selectedId}_success"], [id$="__${selectedId}_error"]`,
-            );
-            for (const edge of edges) {
-                edge.classList.add(classes.selectedEdge);
-            }
-        }
-    }
-    function reselectMainId() {
-        if (containerRef.current) {
-            if (mainId) {
-                const element = containerRef.current.querySelector(`#${mapRef.current?.idToDomIdMap.get(mainId)}`);
-                element?.classList.add(classes.mainNode);
-            } else {
-                const element = containerRef.current.querySelector(`.${classes.mainNode}`);
-                element?.classList.remove(classes.mainNode);
-            }
-        }
-    }
+    // Подключаем логику выделения (визуальные эффекты)
+    useGraphSelection(containerRef, mapRef, selectedId, mainId, renderVersion);
 
     const handleGraphClick = (e: React.MouseEvent) => {
         const target = e.target as HTMLElement;
