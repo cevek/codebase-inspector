@@ -1,0 +1,62 @@
+FE-EXPLORER: FEATURE LIST
+================================================================================
+
+1. LAUNCH & ANALYSIS (BACKEND)
+--------------------------------------------------------------------------------
+• Zero-Config Setup: No installation required. Just run `npx fe-explorer` 
+  in a folder with an existing `tsconfig.json`.
+• Automated Workflow: Tool analyzes the project and automatically opens the 
+  Web UI with the generated graph.
+• Robust TypeScript Analysis: Uses TypeScript API (AST & Type System) for 
+  precise identifier tracking.
+• React Support:
+  - Components & Lazy Loading.
+  - Tracking usages inside dispatched actions.
+• Redux & Epics Support:
+  - Redux Actions analysis.
+  - Deep Epics extraction:
+    - `ofType(Action)` filters.
+    - Dispatched actions.
+    - API Requests detection (Method & URL).
+
+2. VISUALIZATION
+--------------------------------------------------------------------------------
+• Engine: Powered by Graphviz DOT.
+• Node Classification:
+  - Layers: Entity, Service, Data Provider, Mappings, Component Container, 
+    Component View, Component Layout.
+  - Distinct color coding for each layer.
+• Structure:
+  - "Sea of Nodes" (Actions, Components, Epics) wrapped in Modules (Clusters).
+  - Layer names embedded directly inside nodes.
+• Graph Optimization:
+  - Option to embed special actions (Success, Error, Trigger) directly into 
+    the Epic body to minimize graph size.
+  - Toggleable grouping by Modules.
+• Visual Feedback: Smooth animations for all nodes/edges during layout changes.
+
+3. INTERACTION & NAVIGATION
+--------------------------------------------------------------------------------
+• Focus Mode: Isolate and show only the subtree of a specific node.
+• Highlighting: Select a node to highlight it and its bidirectional edges.
+• Controls: Pan and Zoom support.
+• Hiding & Pruning:
+  - Recursively hide nodes (backward/forward).
+  - Restore individual nodes via UI or restore all at once.
+  - Visual indicators for the count of hidden dependencies (both directions).
+  - Reveal hidden nodes when focusing.
+• Layout Options: Switch between Top-to-Bottom or Left-to-Right orientation.
+
+4. UX & TOOLING
+--------------------------------------------------------------------------------
+• IDE Integration: Open node location (file:line:column) directly in your 
+  preferred IDE.
+• State & Sharing:
+  - Full URL synchronization.
+  - Shareable links: Copy the URL to show others exactly what you see.
+• Navigation Tools:
+  - Search with Autocomplete for quick focusing.
+  - Undo/Redo support.
+  - Right-click Context Menu on nodes.
+  - Keyboard Navigation: Move through nodes using arrow keys.
+• Shortcuts: Hotkeys available for every action.
