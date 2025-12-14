@@ -6,10 +6,9 @@ import {Id} from '../../types';
 import {Graph} from './Graph';
 import classes from './GraphViewer.module.css';
 import {useIgnoreClickOnDrag} from './hooks/useIgnoreDraggin';
+import {assignStableIds} from './utils/assignStableIds';
 import {generateGraphviz} from './utils/generateGraphviz';
 import {animateRawAttributes, createAttributeSnapshot, RawSnapshot} from './utils/svgAnimate';
-import {assignStableIds} from './utils/assignStableIds';
-import {HotKeyView} from './HotKeyView/HotKeyView';
 const graphviz = await Graphviz.load();
 export type LayoutDirection = 'TB' | 'LR';
 
@@ -142,9 +141,12 @@ export const GraphViewer: React.FC<{
                 }
 
                 if (snapshot && newSvg) {
-                    animateRawAttributes(newSvg, snapshot);
+                    animateRawAttributes(newSvg, snapshot).then(() => {
+                        transformComponentRef.current?.centerView();
+                    });
                 } else if (newSvg) {
                     newSvg.style.opacity = '1';
+                    setTimeout(() => transformComponentRef.current?.centerView());
                 }
             } catch (err) {
                 console.error('Graph render failed:', err);
@@ -154,7 +156,6 @@ export const GraphViewer: React.FC<{
         renderGraph();
         reselectMainId();
         reselectSelection();
-        transformComponentRef.current?.centerView();
 
         console.log('redraw graph');
 

@@ -9,6 +9,7 @@ const escapeLabel = (label: string) => label.replace(/"/g, '\\"');
 const createHtmlLabel = ({
     layer,
     label,
+    module,
     method,
     triggerPort,
     successPort,
@@ -18,6 +19,7 @@ const createHtmlLabel = ({
 }: {
     layer: string;
     label: string;
+    module?: string | null;
     method?: string | null;
     triggerPort?: boolean | null;
     successPort?: boolean | null;
@@ -35,28 +37,32 @@ const createHtmlLabel = ({
         hiddensArr.push(`▼${hiddenForwardNodesCount}`);
         hiddensTooltipArr.push(`Forward hidden nodes: ${hiddenForwardNodesCount}`);
     }
+    const tds = [
+        layer ? `<TD>${layer}</TD>` : null,
+        triggerPort ? `<TD PORT="trigger">📍</TD>` : null,
+        `<TD>${escapeLabel(label)}</TD>`,
+        method ? `<TD><font color="${THEME.colors.apiCall}">${method ?? ''}</font></TD>` : null,
+        successPort ? `<TD PORT="success">✔</TD>` : null,
+        errorPort ? `<TD PORT="error">✖</TD>` : null,
+    ].filter(Boolean);
 
-    return `
-    <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
-        <TR>
-            ${layer ? `<TD>${layer}</TD>` : ''}
-            ${triggerPort ? `<TD PORT="trigger">📍</TD>` : ''}
-            <TD>${escapeLabel(label)}</TD>
-            ${method ? `<TD><font color="${THEME.colors.apiCall}">${method ?? ''}</font></TD>` : ''}
-            ${successPort ? `<TD PORT="success">✔</TD>` : ''}
-            ${errorPort ? `<TD PORT="error">✖</TD>` : ''}
-        </TR>
-        ${
-            hiddensArr.length > 0
-                ? `<TR><TD TOOLTIP="${hiddensTooltipArr.join('\n')}" colspan="10"><font color="${
-                      THEME.colors.hidden
-                  }" point-size="10">${hiddensArr.join(' ')}</font></TD></TR>`
-                : ''
-        }
-    </TABLE>
-`;
+    const hiddensTd =
+        hiddensArr.length > 0
+            ? `<TD align="right" TOOLTIP="${hiddensTooltipArr.join('\n')}"><font color="${
+                  THEME.colors.hidden
+              }" point-size="10">${hiddensArr.join(' ')}</font></TD>`
+            : '';
+
+    const moduleTd = module
+        ? `<TD align="left"><font color="${THEME.colors.nodeModule}" point-size="10">${module}</font></TD>`
+        : '';
+
+    return `<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2"><TR>${tds.join('\n')}</TR>${
+        moduleTd || hiddensTd
+            ? `<TR><TD colspan="${tds.length}"><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR>${moduleTd}${hiddensTd}</TR></TABLE></TD></TR>`
+            : ''
+    }</TABLE>`;
 };
-// ${url ? `<TR><TD COLSPAN="3"><font color="${THEME.colors.apiCall}">${url}</font></TD></TR>` : ''}
 
 export function generateGraphviz({
     data,
@@ -101,15 +107,6 @@ export function generateGraphviz({
         const hiddenBackwardNodesCount = initialData.findParents2(id).length - data.findParents2(id).length;
         const hiddenForwardNodesCount = initialData.findChildren2(id).length - data.findChildren2(id).length;
 
-        if (id === 'getFetchUserEpic') {
-            console.log({
-                initialDataParents: initialData.findParents2(id),
-                dataParents: data.findParents2(id),
-                initialDataChildren: initialData.findChildren2(id),
-                dataChildren: data.findChildren2(id),
-            });
-        }
-
         let layerHtml = '';
         if (node.location.layer) layerHtml = `<font color="${THEME.colors.layer}">${node.location.layer}</font> `;
 
@@ -145,6 +142,7 @@ export function generateGraphviz({
             const label = createHtmlLabel({
                 layer: layerHtml,
                 label: node.name,
+                module: groupByModules ? null : node.location.module,
                 method: req?.type ?? null,
                 triggerPort,
                 successPort,
@@ -159,6 +157,7 @@ export function generateGraphviz({
             const labelHTML = createHtmlLabel({
                 layer: layerHtml,
                 label: node.name,
+                module: groupByModules ? null : node.location.module,
                 hiddenBackwardNodesCount,
                 hiddenForwardNodesCount,
             });
@@ -168,6 +167,7 @@ export function generateGraphviz({
             const labelHTML = createHtmlLabel({
                 layer: layerHtml,
                 label: node.name,
+                module: groupByModules ? null : node.location.module,
                 hiddenBackwardNodesCount,
                 hiddenForwardNodesCount,
             });
