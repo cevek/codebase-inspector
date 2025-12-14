@@ -2,7 +2,8 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import 'react-contexify/ReactContexify.css';
 
 import {Graph} from '../Graph';
-import {GraphViewer, Rect} from '../GraphViewer/GraphViewer';
+import {GraphViewer} from '../GraphViewer/GraphViewer';
+import { Rect } from '../GraphViewer/types';
 import {Sidebar} from '../Sidebar/Sidebar';
 
 import {useGraphContextMenu} from './hooks/useGraphContextMenu';
@@ -32,7 +33,7 @@ src/
 
 */
 
-export const App: React.FC<{data: Graph}> = ({data: initialData}) => {
+export const GraphEditor: React.FC<{data: Graph}> = ({data: initialData}) => {
     const initialUrlData = useUrlState();
     const {state, actions, history} = useGraphState(initialData, initialUrlData);
 

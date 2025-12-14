@@ -1,6 +1,6 @@
 import {createRoot} from 'react-dom/client';
 import {GraphSerialized, Id, Item} from '../types';
-import {App} from './Graph/GraphEditor/GraphEditor';
+import {GraphEditor} from './Graph/GraphEditor/GraphEditor';
 import {Graph} from './Graph/Graph';
 import {embedActionNodes} from './Graph/logic/embedActionNodes';
 import {loadStateFromUrl} from './Graph/utils/decodeUrlPayload';
@@ -18,7 +18,7 @@ if (graphSerialized) {
         [],
     );
     embedActionNodes(graph);
-    reactRoot.render(<App data={graph} />);
+    reactRoot.render(<GraphEditor data={graph} />);
 } else {
     reactRoot.render(<h1 style={{textAlign: 'center', marginTop: 100}}>Nothing to show</h1>);
 }

@@ -1,5 +1,5 @@
 import {Id} from '../../../../types';
-import {Rect} from '../../GraphViewer/GraphViewer';
+import { Rect } from '../../GraphViewer/types';
 import {ArrowDirection} from '../../types';
 
 type MoveRecord = {

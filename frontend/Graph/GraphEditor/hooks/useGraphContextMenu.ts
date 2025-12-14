@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 import {Id} from '../../../../types';
-import {ContextMenuCb} from '../../GraphViewer/GraphViewer';
+import {ContextMenuCb} from '../../GraphViewer/types';
 import {Direction} from '../../types';
 
 interface MenuActions {
