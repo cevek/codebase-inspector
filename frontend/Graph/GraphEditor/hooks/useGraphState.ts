@@ -1,8 +1,7 @@
 import {useState, useCallback} from 'react';
-import {Id} from '../../../types';
-import {Graph} from '../Graph';
-import {LayoutDirection} from '../GraphViewer';
-import {Direction} from '../types';
+import {Id} from '../../../../types';
+import {Graph} from '../../Graph';
+import {Direction, LayoutDirection} from '../../types';
 
 export interface GraphViewState {
     selectedId: Id | null;

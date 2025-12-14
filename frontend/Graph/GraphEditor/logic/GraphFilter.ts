@@ -1,7 +1,7 @@
-import {Id} from '../../../types';
-import {Graph} from '../Graph';
-import {Direction} from '../types';
-import {embedActionNodes} from './analyzeEmbeddedNodes';
+import {Id} from '../../../../types';
+import {Graph} from '../../Graph';
+import { embedActionNodes } from '../../logic/embedActionNodes';
+import {Direction} from '../../types';
 
 export type Removing = {id: Id; dir: Direction};
 
@@ -34,7 +34,7 @@ export class GraphFilter {
         whiteListIds: Id[],
     ): void {
         if (!Array.isArray(removedIds)) return;
-        
+
         for (const {id: removedId, dir} of removedIds) {
             const node = sourceGraph.nodes.get(removedId);
 

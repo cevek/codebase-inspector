@@ -2,14 +2,14 @@ import {Graphviz} from '@hpcc-js/wasm';
 import * as React from 'react';
 import {Item, Menu, useContextMenu} from 'react-contexify';
 import {ReactZoomPanPinchContentRef, TransformComponent, TransformWrapper} from 'react-zoom-pan-pinch';
-import {Id} from '../../types';
-import {Graph} from './Graph';
+import {Id} from '../../../types';
+import {Graph} from '../Graph';
 import classes from './GraphViewer.module.css';
 import {useIgnoreClickOnDrag} from './hooks/useIgnoreDraggin';
 import {assignStableIds} from './utils/assignStableIds';
 import {generateGraphviz} from './utils/generateGraphviz';
 import {animateRawAttributes, createAttributeSnapshot, RawSnapshot} from './utils/svgAnimate';
-import {LayoutDirection} from './types';
+import {LayoutDirection} from '../types';
 const graphvizPromise = Graphviz.load();
 
 export type ContextMenuItem = {

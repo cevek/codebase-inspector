@@ -1,6 +1,6 @@
 import {Cluster, Id, Item} from '../../types';
 import {Direction, PortName} from './types';
-import {generateGraphClusters} from './utils/generateGraphClusters';
+import {generateGraphClusters} from './logic/generateGraphClusters';
 
 export type Relation = {
     readonly from: Id;

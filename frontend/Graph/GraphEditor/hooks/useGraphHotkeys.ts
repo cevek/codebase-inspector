@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
-import {Id} from '../../../types';
-import {Rect} from '../GraphViewer';
-import {ArrowDirection} from '../types';
-import {SpatialNavigator} from '../utils/SpatialNavigator';
+import {Id} from '../../../../types';
+import {Rect} from '../../GraphViewer/GraphViewer';
+import {ArrowDirection} from '../../types';
+import {SpatialNavigator} from '../logic/SpatialNavigator';
 
 interface HotkeysParams {
     selectedId: Id | null;

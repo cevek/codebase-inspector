@@ -1,10 +1,9 @@
 import React, {JSX} from 'react';
 import styles from './Sidebar.module.css';
-import {LayoutDirection} from '../GraphViewer';
-import {IdeItem, IdeValue} from '../hooks/useIde';
+import {IdeItem, IdeValue} from '../GraphEditor/hooks/useIde';
 import {Id} from '../../../types';
 import {Icons} from './Icons';
-import {Direction} from '../types';
+import {Direction, LayoutDirection} from '../types';
 import {Search, SearchItem} from './Search/Search';
 
 export const Sidebar: React.FC<{

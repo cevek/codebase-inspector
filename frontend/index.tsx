@@ -1,8 +1,8 @@
 import {createRoot} from 'react-dom/client';
 import {GraphSerialized, Id, Item} from '../types';
-import {App} from './Graph/App';
+import {App} from './Graph/GraphEditor/GraphEditor';
 import {Graph} from './Graph/Graph';
-import {embedActionNodes} from './Graph/utils/analyzeEmbeddedNodes';
+import {embedActionNodes} from './Graph/logic/embedActionNodes';
 import {loadStateFromUrl} from './Graph/utils/decodeUrlPayload';
 
 const urlPayload = window.location.hash.match(/payload=([^&]*)/)?.[1];

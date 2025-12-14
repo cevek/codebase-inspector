@@ -1,6 +1,6 @@
-import {Cluster, Id} from '../../../types';
-import {Graph} from '../Graph';
-import {PortName} from '../types';
+import {Cluster, Id} from '../../../../types';
+import {Graph} from '../../Graph';
+import {PortName} from '../../types';
 import {THEME} from './THEME';
 
 const sanitizeId = (id: string) => id.replace(/\$|:|\//g, '_');

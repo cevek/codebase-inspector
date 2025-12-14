@@ -1,6 +1,5 @@
 import {Id} from '../../../types';
 import {Graph} from '../Graph';
-import {prettifyName} from './prettifyName';
 
 export const GraphFormatter = {
     nodeName: (graph: Graph, id: Id | null, prettify = true): string | null => {
@@ -23,3 +22,6 @@ export const GraphFormatter = {
         return GraphFormatter.nodeName(graph, id, true) ?? GraphFormatter.clusterName(graph, id, true) ?? id;
     },
 };
+export function prettifyName(name: string) {
+    return name.replaceAll('/', ' › ');
+}

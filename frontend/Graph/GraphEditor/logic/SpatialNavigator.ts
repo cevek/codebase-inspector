@@ -1,6 +1,6 @@
-import {Id} from '../../../types';
-import {Rect} from '../GraphViewer';
-import {ArrowDirection} from '../types';
+import {Id} from '../../../../types';
+import {Rect} from '../../GraphViewer/GraphViewer';
+import {ArrowDirection} from '../../types';
 
 type MoveRecord = {
     fromId: Id;

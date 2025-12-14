@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
-import {Id} from '../../../types';
-import {ContextMenuCb} from '../GraphViewer';
-import {Direction} from '../types';
+import {Id} from '../../../../types';
+import {ContextMenuCb} from '../../GraphViewer/GraphViewer';
+import {Direction} from '../../types';
 
 interface MenuActions {
     focusNode: (id: Id) => void;

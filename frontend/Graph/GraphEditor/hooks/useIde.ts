@@ -1,6 +1,6 @@
-import {Id} from '../../../types';
-import {Graph} from '../Graph';
-import {usePersistentState} from './usePersistentState';
+import {Id} from '../../../../types';
+import {Graph} from '../../Graph';
+import {usePersistentState} from '../../hooks/usePersistentState';
 
 const ideOptions = [
     {name: 'VSCode', value: 'vscode', link: (url: string) => 'vscode://file/' + url},

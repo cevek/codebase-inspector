@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import {GraphViewState} from './useGraphState';
-import {Id} from '../../../types';
-import {LayoutDirection} from '../GraphViewer';
+import {Id} from '../../../../types';
+import {LayoutDirection} from '../../types';
 
 // 1. Единый источник правды для ключей
 const URL_KEYS = {

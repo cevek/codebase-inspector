@@ -2,7 +2,6 @@ import {Cluster, Id} from '../../../types';
 
 export function generateGraphClusters(nodes: {id: Id; module: string}[]): Map<Id, Cluster> {
     const clusters = new Map<Id, Cluster>();
-    // return clusters;
     const pathKeyToIdMap = new Map<string, Id>();
     for (const node of nodes) {
         const pathString = node.module;

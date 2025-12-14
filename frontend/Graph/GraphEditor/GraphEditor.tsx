@@ -1,18 +1,18 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import 'react-contexify/ReactContexify.css';
 
-import {Graph} from './Graph';
-import {GraphViewer, Rect} from './GraphViewer';
-import {Sidebar} from './Sidebar/Sidebar';
+import {Graph} from '../Graph';
+import {GraphViewer, Rect} from '../GraphViewer/GraphViewer';
+import {Sidebar} from '../Sidebar/Sidebar';
 
 import {useGraphContextMenu} from './hooks/useGraphContextMenu';
 import {useGraphHotkeys} from './hooks/useGraphHotkeys';
 import {useGraphState} from './hooks/useGraphState';
 import {useIde} from './hooks/useIde';
-import {usePersistentState} from './hooks/usePersistentState';
-import {GraphFilter} from './utils/GraphFilter';
-import {SpatialNavigator} from './utils/SpatialNavigator';
-import {GraphFormatter} from './utils/formatters';
+import {usePersistentState} from '../hooks/usePersistentState';
+import {GraphFilter} from './logic/GraphFilter';
+import {SpatialNavigator} from './logic/SpatialNavigator';
+import {GraphFormatter} from '../utils/formatters';
 import {useUrlState, useUrlSync} from './hooks/useUrlSync';
 
 /*
