@@ -11,26 +11,9 @@ import {useGraphContextMenu} from './hooks/useGraphContextMenu';
 import {useGraphHotkeys} from './hooks/useGraphHotkeys';
 import {GraphViewState, useGraphState} from './hooks/useGraphState';
 import {useIde} from './hooks/useIde';
-import {GraphFilter} from './logic/GraphFilter';
 import {SpatialNavigator} from './logic/SpatialNavigator';
 import {urlSyncFactory} from '../hooks/useUrlSync';
-
-/*
-
-src/
-├── features/
-│   └── GraphNavigation/        # Всё, что касается графа
-│       ├── domain/             # Чистая логика (без React)
-│       │   ├── SpatialNavigator.ts  # Класс для расчета findNextNode
-│       │   └── GraphFilter.ts       # Логика фильтрации графа (удаление, скрытие)
-│       ├── hooks/              # React хуки
-│       │   ├── useGraphState.ts     # Основной стейт + undo/redo
-│       │   ├── useUrlSync.ts        # Синхронизация стейта с URL
-│       │   ├── useGraphHotkeys.ts   # Обработка клавиатуры
-│       │   └── useGraphLayout.ts    # Вычисление "нового" графа на основе фильтров
-│       └── GraphEditor.tsx     # Бывший App, теперь чистый компонент-координатор
-
-*/
+import {filterGraph} from './logic/filterGraph';
 
 const {readUrlData, useUrlSync} = urlSyncFactory<GraphViewState>()({
     selectedId: 'string',
@@ -48,7 +31,7 @@ export const GraphEditor: React.FC<{data: Graph}> = ({data: rawInitialGraph}) =>
 
     const filteredGraph = useMemo(
         () =>
-            GraphFilter.apply(initialGraph, {
+            filterGraph(initialGraph, {
                 removedIds: state.removedIds,
                 whiteListIds: state.whiteListIds,
                 focusId: state.focusId,
